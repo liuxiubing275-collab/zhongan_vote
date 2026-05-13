@@ -11,9 +11,9 @@ async function loadCandidates() {
   const { data: candidates, error } = await db
     .from('candidates')
     .select('*')
+    .order('position', { ascending: true });
     console.log(candidates);
     console.log(error);
-    .order('position', { ascending: true });
 
   if (error) {
     alert("加载候选人失败：" + error.message);
