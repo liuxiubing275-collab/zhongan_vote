@@ -106,7 +106,7 @@ for (const div of positions) {
   if (!userCode || userCode.length !== 5) { alert("请输入正确的序列码"); return; }
 
   // 验证序列码
-  const { data: codeData } = await db
+  const { data: codeData, error: codeError } = await db
     .from('codes')
     .select('*')
     .eq('code', userCode)
@@ -136,17 +136,19 @@ for (const div of positions) {
   // 标记序列码为已使用
   const { error: updateError } = await db
 .from('codes')
-.update({
-  used: true
-})
+.update({used: true })
 .eq('code', userCode)
 .eq('used', false);
 
   if (updateError) { alert("更新序列码状态失败：" + updateError.message); return; }
 
-  alert("投票成功！");
-  voteForm.reset();
-  document.getElementById('userCode').value = '';
+  // ✅ 提示投票成功
+  if (confirm("投票成功")) {
+    // 尝试关闭网页（仅部分手机浏览器允许）
+    window.open('', '_self'); // 一些浏览器要求先打开自己
+    window.close();
+  }
+
 }
 
 // 页面加载
