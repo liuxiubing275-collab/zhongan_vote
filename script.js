@@ -1,4 +1,4 @@
-// Supabase 初始化
+// supabase 初始化
 const supabaseUrl = 'https://bhilewmilbhxowxwwyfq.supabase.co';
 const supabaseKey = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
 const db = supabase.createClient(supabaseUrl, supabaseKey);
@@ -11,6 +11,8 @@ async function loadCandidates() {
   const { data: candidates, error } = await db
     .from('candidates')
     .select('*')
+    console.log(candidates);
+    console.log(error);
     .order('position', { ascending: true });
 
   if (error) {
