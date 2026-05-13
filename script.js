@@ -1,7 +1,7 @@
 // Supabase 初始化
 const supabaseUrl = 'https://bhilewmilbhxowxwwyfq.supabase.co';
 const supabaseKey = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
-const db = Supabase.createClient(supabaseUrl, supabaseKey);
+const db = supabase.createClient(supabaseUrl, supabaseKey);
 
 const voteForm = document.getElementById('voteForm');
 const submitBtn = document.getElementById('submitBtn');
