@@ -1,3 +1,25 @@
+// 自动读取二维码中的序列号
+loadCandidates()
+window.addEventListener('DOMContentLoaded', () => {
+
+  const params = new URLSearchParams(window.location.search);
+
+  const code = params.get('code');
+
+  if (code) {
+
+    const input = document.getElementById('userCode');
+
+    if (input) {
+
+      input.value = code.toUpperCase();
+
+    }
+
+  }
+
+});
+
 // supabase 初始化
 const supabaseUrl = 'https://bhilewmilbhxowxwwyfq.supabase.co';
 const supabaseKey = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
