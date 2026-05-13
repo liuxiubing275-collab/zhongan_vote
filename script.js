@@ -1,14 +1,14 @@
 // Supabase 初始化
 const supabaseUrl = 'https://bhilewmilbhxowxwwyfq.supabase.co';
 const supabaseKey = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
-const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+const db = Supabase.createClient(supabaseUrl, supabaseKey);
 
 const voteForm = document.getElementById('voteForm');
 const submitBtn = document.getElementById('submitBtn');
 
 // 页面加载时获取候选人并生成表单
 async function loadCandidates() {
-  const { data: candidates, error } = await supabase
+  const { data: candidates, error } = await db
     .from('candidates')
     .select('*')
     .order('position', { ascending: true });
@@ -104,7 +104,7 @@ for (const div of positions) {
   if (!userCode || userCode.length !== 5) { alert("请输入正确的序列码"); return; }
 
   // 验证序列码
-  const { data: codeData } = await supabase
+  const { data: codeData } = await db
     .from('codes')
     .select('*')
     .eq('code', userCode)
@@ -125,14 +125,14 @@ for (const div of positions) {
   }
 
   // 插入投票记录
-  const { error: voteError } = await supabase
+  const { error: voteError } = await db
     .from('votes')
     .insert(voteArray);
 
   if (voteError) { alert("投票失败：" + voteError.message); return; }
 
   // 标记序列码为已使用
-  const { error: updateError } = await supabase
+  const { error: updateError } = await db
     .from('codes')
     .update({ used: true })
     .eq('code', userCode);
