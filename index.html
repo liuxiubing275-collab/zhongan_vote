@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中干竞聘投票</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header>
+    <h1>中干竞聘投票</h1>
+  </header>
+
+  <div class="user-code">
+    <label>请输入序列码（5位字母数字）：</label>
+    <input type="text" id="userCode" maxlength="5" placeholder="ABCDE">
+  </div>
+
+  <form id="voteForm"></form>
+
+  <button id="submitBtn">提交投票</button>
+
+  <script src="script.js"></script>
+</body>
+</html>
