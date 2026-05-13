@@ -8,10 +8,16 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
   <header>
     <h1>中干竞聘投票</h1>
   </header>
+
+<div id="successOverlay">
+  投票成功！<br>
+  <button onclick="closePage()">确定</button>
+</div>
 
   <div class="user-code">
     <label>请输入序列码（5位字母数字）：</label>

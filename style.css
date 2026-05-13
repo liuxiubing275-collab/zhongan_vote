@@ -1,44 +1,113 @@
+/* 全局样式 */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f4f8;
+    margin: 0;
     padding: 10px;
-    max-width: 600px;
-    margin: auto;
 }
 
+/* 标题 */
 header h1 {
     text-align: center;
-    color: #2c3e50;
+    color: #1e3a8a; /* 深蓝色 */
+    font-size: 1.8em;
+    margin-bottom: 20px;
 }
 
-.position {
-    border: 1px solid #ddd;
+/* 序列码区域 */
+.user-code {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.user-code label {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.user-code input {
     padding: 10px;
-    margin: 10px 0;
+    font-size: 1em;
+    width: 120px;
+    border: 1px solid #ccc;
     border-radius: 6px;
+}
+
+/* 岗位卡片 */
+.position {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
 .position h2 {
-    font-size: 1.1em;
-    margin-bottom: 5px;
+    margin: 0 0 10px 0;
+    font-size: 1.2em;
+    color: #1e40af;
 }
 
-label {
+/* 候选人标签 */
+.position label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    font-size: 1em;
 }
 
-button {
+.position input[type="checkbox"],
+.position input[type="radio"] {
+    margin-right: 10px;
+}
+
+/* 提交按钮 */
+#submitBtn {
     display: block;
     width: 100%;
-    padding: 10px;
-    font-size: 1em;
-    background-color: #3498db;
+    padding: 15px;
+    font-size: 1.1em;
+    font-weight: bold;
+    background-color: #2563eb;
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
+    transition: 0.3s;
 }
 
-button:hover {
-    background-color: #2980b9;
+#submitBtn:hover {
+    background-color: #1e40af;
+}
+
+/* 投票成功覆盖层 */
+#successOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(30, 58, 138, 0.95);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    text-align: center;
+}
+
+#successOverlay button {
+    margin-top: 20px;
+    padding: 12px 20px;
+    background-color: #fff;
+    color: #1e3a8a;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
 }

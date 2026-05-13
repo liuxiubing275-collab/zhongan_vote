@@ -187,13 +187,36 @@ for (const div of positions) {
 
   if (updateError) { alert("更新序列码状态失败：" + updateError.message); return; }
 
-  // ✅ 提示投票成功
-  if (confirm("投票成功")) {
-    // 尝试关闭网页（仅部分手机浏览器允许）
-    window.open('', '_self'); // 一些浏览器要求先打开自己
-    window.close();
-  }
+const overlay = document.getElementById('successOverlay');
+overlay.style.display = 'flex';
 
+// 点击确定关闭页面
+window.closePage = function() {
+    overlay.style.display = 'none';
+    window.open('', '_self');
+    window.close();
+    // iOS/部分浏览器无法关闭，可以跳转空白页
+    setTimeout(() => {
+        location.href = 'about:blank';
+    }, 500);
+};
+    // 尝试关闭网页（手机端）
+    window.open('', '_self');
+    window.close();
+    // 如果浏览器不允许关闭
+    // 自动跳转空白页
+    setTimeout(() => {
+      location.href = 'about:blank';
+    }, 500);
+  }
+  catch (err) {
+    console.error(err);
+    alert("系统错误：" + err.message);
+  }
+  finally {
+    submitting = false;
+  }
+}
 }
 
 // 页面加载
