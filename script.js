@@ -135,9 +135,12 @@ for (const div of positions) {
 
   // 标记序列码为已使用
   const { error: updateError } = await db
-    .from('codes')
-    .update({ used: true })
-    .eq('code', userCode);
+.from('codes')
+.update({
+  used: true
+})
+.eq('code', userCode)
+.eq('used', false);
 
   if (updateError) { alert("更新序列码状态失败：" + updateError.message); return; }
 
