@@ -1,22 +1,44 @@
 // 自动读取二维码中的序列号
-loadCandidates()
+// 页面加载完成
 window.addEventListener('DOMContentLoaded', () => {
 
-  const params = new URLSearchParams(window.location.search);
+  // 读取二维码参数
+  const params =
+    new URLSearchParams(window.location.search);
 
-  const code = params.get('code');
+  const code =
+    params.get('code');
 
+  console.log("二维码 code =", code);
+
+  // 自动填入序列号
   if (code) {
 
-    const input = document.getElementById('userCode');
+    const input =
+      document.getElementById('userCode');
 
     if (input) {
 
-      input.value = code.toUpperCase();
+      input.value =
+        code.toUpperCase();
+
+    }
+
+    // 隐藏序列号输入区域（可选）
+    const userCodeDiv =
+      document.querySelector('.user-code');
+
+    if (userCodeDiv) {
+
+      userCodeDiv.style.display =
+        'none';
 
     }
 
   }
+
+  // 加载候选人
+  loadCandidates();
 
 });
 
@@ -175,5 +197,4 @@ for (const div of positions) {
 }
 
 // 页面加载
-window.addEventListener('DOMContentLoaded', loadCandidates);
 submitBtn.addEventListener('click', submitVote);
