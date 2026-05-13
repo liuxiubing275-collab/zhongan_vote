@@ -1,8 +1,9 @@
-// 自动读取二维码中的序列号
-// 页面加载完成
+// =========================
+// 自动读取二维码 + 页面初始化
+// =========================
 window.addEventListener('DOMContentLoaded', () => {
 
-  // 读取二维码参数
+  // 读取 URL 参数
   const params =
     new URLSearchParams(window.location.search);
 
@@ -24,7 +25,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     }
 
-    // 隐藏序列号输入区域（可选）
+    // 隐藏序列号输入区域
     const userCodeDiv =
       document.querySelector('.user-code');
 
@@ -42,182 +43,453 @@ window.addEventListener('DOMContentLoaded', () => {
 
 });
 
-// supabase 初始化
-const supabaseUrl = 'https://bhilewmilbhxowxwwyfq.supabase.co';
-const supabaseKey = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
-const db = supabase.createClient(supabaseUrl, supabaseKey);
+// =========================
+// Supabase 初始化
+// =========================
+const supabaseUrl =
+  'https://bhilewmilbhxowxwwyfq.supabase.co';
 
-const voteForm = document.getElementById('voteForm');
-const submitBtn = document.getElementById('submitBtn');
+const supabaseKey =
+  'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
 
-// 页面加载时获取候选人并生成表单
+const db =
+  supabase.createClient(
+    supabaseUrl,
+    supabaseKey
+  );
+
+// =========================
+// 获取页面元素
+// =========================
+const voteForm =
+  document.getElementById('voteForm');
+
+const submitBtn =
+  document.getElementById('submitBtn');
+
+// =========================
+// 加载候选人
+// =========================
 async function loadCandidates() {
-  const { data: candidates, error } = await db
-    .from('candidates')
-    .select('*')
-    .order('position', { ascending: true });
-    console.log(candidates);
-    console.log(error);
+
+  const { data: candidates, error } =
+    await db
+      .from('candidates')
+      .select('*')
+      .order('position', {
+        ascending: true
+      });
+
+  console.log(candidates);
+  console.log(error);
 
   if (error) {
-    alert("加载候选人失败：" + error.message);
+
+    alert(
+      "加载候选人失败："
+      + error.message
+    );
+
     return;
+
   }
 
   // 按岗位分组
   const groups = {};
+
   candidates.forEach(c => {
-    if (!groups[c.position]) groups[c.position] = [];
+
+    if (!groups[c.position]) {
+
+      groups[c.position] = [];
+
+    }
+
     groups[c.position].push(c);
+
   });
 
-  // 生成 HTML
-  for (const [position, list] of Object.entries(groups)) {
-    const div = document.createElement('div');
+  // 生成岗位
+  for (const [position, list]
+    of Object.entries(groups)) {
+
+    const div =
+      document.createElement('div');
+
     div.className = 'position';
-    const maxSelect = list[0].max_select || 1;
-    const title = document.createElement('h2');
-    title.textContent = `${position}（选${maxSelect}人）`;
+
+    const maxSelect =
+      list[0].max_select || 1;
+
+    // 标题
+    const title =
+      document.createElement('h2');
+
+    title.textContent =
+      `${position}（选${maxSelect}人）`;
+
     div.appendChild(title);
 
-list.forEach(c => {
-  const label = document.createElement('label');
-  const input = document.createElement('input');
-  input.type = maxSelect === 1 ? 'radio' : 'checkbox';
-  input.name = position;
-  input.value = c.id;
+    // 候选人
+    list.forEach(c => {
 
-  // 复选框限制选择人数
-  if (maxSelect > 1) {
-    input.addEventListener('change', () => {
-      const checked = document.querySelectorAll(
-        `input[name="${position}"]:checked`
-      );
-      if (checked.length > maxSelect) {
-        input.checked = false;
-        alert(`${position} 最多只能选择 ${maxSelect} 人`);
+      const label =
+        document.createElement('label');
+
+      const input =
+        document.createElement('input');
+
+      input.type =
+        maxSelect === 1
+          ? 'radio'
+          : 'checkbox';
+
+      input.name = position;
+
+      input.value = c.id;
+
+      // 多选限制
+      if (maxSelect > 1) {
+
+        input.addEventListener(
+          'change',
+          () => {
+
+            const checked =
+              document.querySelectorAll(
+                `input[name="${position}"]:checked`
+              );
+
+            if (
+              checked.length
+              > maxSelect
+            ) {
+
+              input.checked = false;
+
+              alert(
+                `${position} 最多只能选择 ${maxSelect} 人`
+              );
+
+            }
+
+          }
+        );
+
       }
+
+      label.appendChild(input);
+
+      label.appendChild(
+        document.createTextNode(
+          ' ' + c.name
+        )
+      );
+
+      div.appendChild(label);
+
     });
-  }
-  label.appendChild(input);
-  label.appendChild(
-    document.createTextNode(' ' + c.name)
-  );
-  div.appendChild(label);
-});
+
     voteForm.appendChild(div);
+
   }
+
 }
 
-// 提交投票
+// =========================
+// 防重复提交
+// =========================
 let submitting = false;
+
+// =========================
+// 提交投票
+// =========================
 async function submitVote() {
-  const userCode = document.getElementById('userCode').value.trim().toUpperCase();
-// 获取所有岗位区域
-const positions = document.querySelectorAll('.position');
-// 检查每个岗位
-for (const div of positions) {
-  // 岗位名称
-  const title = div.querySelector('h2').textContent;
-  // 获取所有 input
-  const inputs = div.querySelectorAll('input');
-  if (inputs.length === 0) continue;
-  // 最大选择人数
-  const firstInput = inputs[0];
-  let maxSelect = 1;
-  // 从标题提取数字
-  const match = title.match(/选(\d+)人/);
-  if (match) {
-    maxSelect = parseInt(match[1]);
-  }
-  // 已选择数量
-  const checked = div.querySelectorAll('input:checked');
-  // 单选岗位
-  if (maxSelect === 1) {
-    if (checked.length !== 1) {
-      alert(`${title} 必须选择 1 人`);
+
+  // 防止连续点击
+  if (submitting) return;
+
+  submitting = true;
+
+  try {
+
+    // 获取序列码
+    const userCode =
+      document.getElementById('userCode')
+      .value
+      .trim()
+      .toUpperCase();
+
+    // 校验序列码
+    if (
+      !userCode
+      || userCode.length !== 5
+    ) {
+
+      alert(
+        "请输入正确的5位序列码"
+      );
+
+      submitting = false;
+
       return;
+
     }
-  }
-  // 多选岗位
-  else {
-    if (checked.length !== maxSelect) {
-      alert(`${title} 必须选择 ${maxSelect} 人`);
+
+    // 验证序列码
+    const {
+      data: codeData,
+      error: codeError
+    } =
+      await db
+        .from('codes')
+        .select('*')
+        .eq('code', userCode)
+        .single();
+
+    if (
+      codeError
+      || !codeData
+    ) {
+
+      alert("序列码无效");
+
+      submitting = false;
+
       return;
+
     }
-  }
-}
 
-  if (!userCode || userCode.length !== 5) { alert("请输入正确的序列码"); return; }
+    // 检查是否已使用
+    if (codeData.used) {
 
-  // 验证序列码
-  const { data: codeData, error: codeError } = await db
-    .from('codes')
-    .select('*')
-    .eq('code', userCode)
-    .single();
+      alert("该序列码已使用");
 
-  if (!codeData) { alert("序列码无效"); return; }
-  if (codeData.used) { alert("序列码已使用"); return; }
+      submitting = false;
 
-  // 获取表单数据
-  const formData = new FormData(voteForm);
-  const voteArray = [];
-  for (const [position, values] of formData.entries()) {
-    if (Array.isArray(values)) {
-      values.forEach(v => voteArray.push({ user_code: userCode, candidate_id: v }));
-    } else {
-      voteArray.push({ user_code: userCode, candidate_id: values });
+      return;
+
     }
+
+    // 获取所有岗位
+    const positions =
+      document.querySelectorAll(
+        '.position'
+      );
+
+    // 完整校验
+    for (const div of positions) {
+
+      const title =
+        div.querySelector('h2')
+        .textContent;
+
+      const inputs =
+        div.querySelectorAll('input');
+
+      if (inputs.length === 0)
+        continue;
+
+      let maxSelect = 1;
+
+      const match =
+        title.match(/选(\d+)人/);
+
+      if (match) {
+
+        maxSelect =
+          parseInt(match[1]);
+
+      }
+
+      const checked =
+        div.querySelectorAll(
+          'input:checked'
+        );
+
+      // 单选
+      if (maxSelect === 1) {
+
+        if (
+          checked.length !== 1
+        ) {
+
+          alert(
+            `${title} 必须选择1人`
+          );
+
+          submitting = false;
+
+          return;
+
+        }
+
+      }
+
+      // 多选
+      else {
+
+        if (
+          checked.length
+          !== maxSelect
+        ) {
+
+          alert(
+            `${title} 必须选择 ${maxSelect} 人`
+          );
+
+          submitting = false;
+
+          return;
+
+        }
+
+      }
+
+    }
+
+    // 收集投票数据
+    const voteArray = [];
+
+    positions.forEach(div => {
+
+      const checkedInputs =
+        div.querySelectorAll(
+          'input:checked'
+        );
+
+      checkedInputs.forEach(input => {
+
+        voteArray.push({
+
+          user_code: userCode,
+
+          candidate_id:
+            parseInt(input.value)
+
+        });
+
+      });
+
+    });
+
+    // 插入投票
+    const {
+      error: voteError
+    } =
+      await db
+        .from('votes')
+        .insert(voteArray);
+
+    if (voteError) {
+
+      alert(
+        "投票失败："
+        + voteError.message
+      );
+
+      submitting = false;
+
+      return;
+
+    }
+
+    // 更新序列码
+    const {
+      error: updateError
+    } =
+      await db
+        .from('codes')
+        .update({
+
+          used: true
+
+        })
+        .eq('code', userCode)
+        .eq('used', false);
+
+    if (updateError) {
+
+      alert(
+        "更新序列码状态失败："
+        + updateError.message
+      );
+
+      submitting = false;
+
+      return;
+
+    }
+
+    // =========================
+    // 投票成功显示覆盖层
+    // =========================
+    const overlay =
+      document.getElementById(
+        'successOverlay'
+      );
+
+    if (overlay) {
+
+      overlay.style.display =
+        'flex';
+
+    }
+
+    // 关闭页面函数
+    window.closePage =
+      function () {
+
+        if (overlay) {
+
+          overlay.style.display =
+            'none';
+
+        }
+
+        // 尝试关闭页面
+        window.open(
+          '',
+          '_self'
+        );
+
+        window.close();
+
+        // 某些手机浏览器不允许关闭
+        setTimeout(() => {
+
+          location.href =
+            'about:blank';
+
+        }, 500);
+
+      };
+
   }
 
-  // 插入投票记录
-  const { error: voteError } = await db
-    .from('votes')
-    .insert(voteArray);
-
-  if (voteError) { alert("投票失败：" + voteError.message); return; }
-
-  // 标记序列码为已使用
-  const { error: updateError } = await db
-.from('codes')
-.update({used: true })
-.eq('code', userCode)
-.eq('used', false);
-
-  if (updateError) { alert("更新序列码状态失败：" + updateError.message); return; }
-
-const overlay = document.getElementById('successOverlay');
-overlay.style.display = 'flex';
-
-// 点击确定关闭页面
-window.closePage = function() {
-    overlay.style.display = 'none';
-    window.open('', '_self');
-    window.close();
-    // iOS/部分浏览器无法关闭，可以跳转空白页
-    setTimeout(() => {
-        location.href = 'about:blank';
-    }, 500);
-};
-    // 尝试关闭网页（手机端）
-    window.open('', '_self');
-    window.close();
-    // 如果浏览器不允许关闭
-    // 自动跳转空白页
-    setTimeout(() => {
-      location.href = 'about:blank';
-    }, 500);
-  }
   catch (err) {
+
     console.error(err);
-    alert("系统错误：" + err.message);
+
+    alert(
+      "系统错误："
+      + err.message
+    );
+
   }
+
   finally {
+
     submitting = false;
+
   }
-}
+
 }
 
-// 页面加载
-submitBtn.addEventListener('click', submitVote);
+// =========================
+// 绑定提交按钮
+// =========================
+submitBtn.addEventListener(
+  'click',
+  submitVote
+);
