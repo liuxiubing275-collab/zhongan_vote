@@ -1,16 +1,26 @@
-const supabaseUrl = 'https://bhilewmilbhxowxwwyfq.supabase.co';
+// 修改后的 script.js 文件
+// 功能：
+// 1. 岗位不可多选（超过最大选数阻止提交）
+// 2. 岗位可少选（包括单选岗位）
+// 3. 少选时弹出提示，用户可选择直接提交或返回补选
+// 4. 防止重复声明 supabase
+
+if (typeof supabase === 'undefined') {
+const supabaseUrl = '[https://bhilewmilbhxowxwwyfq.supabase.co](https://bhilewmilbhxowxwwyfq.supabase.co)';
 const supabaseKey = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+}
 
 const submitBtn = document.getElementById('submitVote');
 
 submitBtn.addEventListener('click', async () => {
-  let submitting = true;
+let submitting = true;
 
-  // 获取所有岗位组
-  const positions = document.querySelectorAll('.candidate-group');
+```
+// 获取所有岗位组
+const positions = document.querySelectorAll('.candidate-group');
 
-  for (const div of positions) {
+for (const div of positions) {
     const title = div.querySelector('h2') ? div.querySelector('h2').textContent : '岗位';
     const inputs = div.querySelectorAll('input');
 
@@ -24,45 +34,47 @@ submitBtn.addEventListener('click', async () => {
 
     // 超选禁止提交
     if (checked.length > maxSelect) {
-      alert(`${title} 最多只能选择 ${maxSelect} 人`);
-      submitting = false;
-      return;
+        alert(`${title} 最多只能选择 ${maxSelect} 人`);
+        submitting = false;
+        return;
     }
 
     // 少选提示（允许不选）
     if (checked.length < maxSelect) {
-      const confirmSubmit = confirm(
-        `岗位 "${title}" 您未选择所有候选人，是否仍然提交？点击确定直接提交，点击取消返回补选`
-      );
-      if (!confirmSubmit) {
-        submitting = false;
-        return; // 返回补选
-      }
+        const confirmSubmit = confirm(
+            `岗位 "${title}" 您未选择所有候选人，是否仍然提交？点击确定直接提交，点击取消返回补选`
+        );
+        if (!confirmSubmit) {
+            submitting = false;
+            return; // 返回补选
+        }
     }
-  }
+}
 
-  if (!submitting) return;
+if (!submitting) return;
 
-  // 提交投票逻辑（示例）
-  const votesData = [];
+// 提交投票逻辑
+const votesData = [];
 
-  positions.forEach((div) => {
+positions.forEach((div) => {
     const selected = div.querySelectorAll('input:checked');
     selected.forEach((input) => {
-      votesData.push({
-        candidate_id: input.value,
-        code: document.getElementById('codeInput').value
-      });
+        votesData.push({
+            candidate_id: input.value,
+            code: document.getElementById('codeInput').value
+        });
     });
-  });
+});
 
-  try {
+try {
     const { data, error } = await supabase.from('votes').insert(votesData);
     if (error) throw error;
     alert('投票成功！');
-    // 可以在这里锁定序列号或刷新页面
-  } catch (err) {
+    // 可在此刷新页面或锁定序列号
+} catch (err) {
     console.error(err);
     alert('投票失败，请重试');
-  }
+}
+```
+
 });
