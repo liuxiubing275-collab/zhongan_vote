@@ -1,34 +1,40 @@
 // =========================
-// 全局配置与初始化
+// 自动读取二维码 + 页面初始化
+// =========================
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  console.log("二维码 code =", code);
+
+  if (code) {
+    const input = document.getElementById('userCode');
+    if (input) {
+      input.value = code.toUpperCase();
+    }
+    const userCodeDiv = document.querySelector('.user-code');
+    if (userCodeDiv) {
+      userCodeDiv.style.display = 'none';
+    }
+  }
+  loadCandidates();
+});
+
+// =========================
+// Supabase 初始化
 // =========================
 const supabaseUrl = 'https://bhilewmilbhxowxwwyfq.supabase.co';
 const supabaseKey = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
 const db = supabase.createClient(supabaseUrl, supabaseKey);
 
+// =========================
+// 获取页面元素
+// =========================
 const voteForm = document.getElementById('voteForm');
 const submitBtn = document.getElementById('submitBtn');
 let submitting = false;
 
 // =========================
-// 页面加载与参数解析
-// =========================
-window.addEventListener('DOMContentLoaded', () => {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get('code');
-  
-  if (code) {
-    const input = document.getElementById('userCode');
-    if (input) input.value = code.toUpperCase();
-    
-    const userCodeDiv = document.querySelector('.user-code');
-    if (userCodeDiv) userCodeDiv.style.display = 'none';
-  }
-  
-  loadCandidates();
-});
-
-// =========================
-// 动态加载候选人 (全部强制为单选/可弃权)
+// 加载候选人 (保留原逻辑：根据 max_select 动态生成控件)
 // =========================
 async function loadCandidates() {
   const { data: candidates, error } = await db
@@ -48,23 +54,40 @@ async function loadCandidates() {
     groups[c.position].push(c);
   });
 
-  // 渲染DOM
+  // 生成岗位 DOM
   for (const [position, list] of Object.entries(groups)) {
     const div = document.createElement('div');
     div.className = 'position';
+    
+    const maxSelect = list[0].max_select || 1;
+    // 将限制值存入 dataset，提交时直接读取，避免正则解析出错
+    div.dataset.maxSelect = maxSelect;
 
     const title = document.createElement('h2');
-    // 提示文案统一改为“单选或弃权”
-    title.textContent = `${position}（单选或弃权）`;
+    title.textContent = `${position}（限选${maxSelect}人，可少选）`;
     div.appendChild(title);
 
     list.forEach(c => {
       const label = document.createElement('label');
       const input = document.createElement('input');
-      input.type = 'radio'; // 强制单选
-      input.name = `group_${position}`; // 按岗位隔离单选组
+
+      // 【核心保留】根据 max_select 决定类型
+      input.type = maxSelect === 1 ? 'radio' : 'checkbox';
+      // 使用统一前缀避免岗位名含空格导致 name 属性失效
+      input.name = `pos_${position.replace(/\s+/g, '_')}`;
       input.value = c.id;
-      
+
+      // 多选限制：防止用户勾选超过 max_select
+      if (maxSelect > 1) {
+        input.addEventListener('change', () => {
+          const checked = div.querySelectorAll('input:checked');
+          if (checked.length > maxSelect) {
+            input.checked = false;
+            alert(`${position} 最多只能选择 ${maxSelect} 人`);
+          }
+        });
+      }
+
       label.appendChild(input);
       label.appendChild(document.createTextNode(' ' + c.name));
       div.appendChild(label);
@@ -75,19 +98,19 @@ async function loadCandidates() {
 }
 
 // =========================
-// 提交投票核心逻辑
+// 提交投票 (新增少选确认逻辑)
 // =========================
 async function submitVote() {
   if (submitting) return;
   submitting = true;
 
   try {
-    // 1. 获取并校验序列码
     const userCode = document.getElementById('userCode').value.trim().toUpperCase();
+
+    // 1. 校验序列码格式
     if (!userCode || userCode.length !== 5) {
       alert("请输入正确的5位序列码");
-      submitting = false;
-      return;
+      submitting = false; return;
     }
 
     // 2. 验证序列码有效性
@@ -99,59 +122,58 @@ async function submitVote() {
 
     if (codeError || !codeData) {
       alert("序列码无效");
-      submitting = false;
-      return;
+      submitting = false; return;
     }
     if (codeData.used) {
       alert("该序列码已使用，请勿重复投票");
-      submitting = false;
-      return;
+      submitting = false; return;
     }
 
-    // 3. 遍历岗位，校验选择情况并收集数据
+    // 3. 遍历岗位收集数据与未选项
     const positions = document.querySelectorAll('.position');
     const unselectedPositions = [];
     const voteArray = [];
 
     for (const div of positions) {
+      const maxSelect = parseInt(div.dataset.maxSelect || 1);
       const titleEl = div.querySelector('h2');
-      const positionName = titleEl.textContent.split('（')[0].trim(); // 提取纯岗位名
+      const positionName = titleEl.textContent.split('（')[0].trim();
       const checkedInputs = div.querySelectorAll('input:checked');
 
-      // 防御性检查：防止HTML被篡改导致多选
-      if (checkedInputs.length > 1) {
-        alert(`${positionName} 仅支持单选，请取消多余选项后重试`);
-        submitting = false;
-        return;
+      // 安全拦截：防止恶意篡改前端导致超选
+      if (checkedInputs.length > maxSelect) {
+        alert(`${positionName} 最多只能选择 ${maxSelect} 人，请取消多余选项`);
+        submitting = false; return;
       }
 
       if (checkedInputs.length === 0) {
         unselectedPositions.push(positionName);
       } else {
-        voteArray.push({
-          user_code: userCode,
-          candidate_id: parseInt(checkedInputs[0].value)
+        checkedInputs.forEach(input => {
+          voteArray.push({
+            user_code: userCode,
+            candidate_id: parseInt(input.value)
+          });
         });
       }
     }
 
-    // 4. 处理未选项提示逻辑
+    // 4. 【核心交互】处理少选/弃权提示
     if (unselectedPositions.length > 0) {
-      const confirmMsg = `⚠️ 提示：您尚未选择以下岗位的候选人：\n\n${unselectedPositions.join('、')}\n\n✅ 点击【确定】将直接提交（未选项视为弃权）\n🔙 点击【取消】将留在页面进行补选`;
+      const msg = `⚠️ 提示：您尚未选择以下岗位的候选人：\n\n${unselectedPositions.join('、')}\n\n✅ 点击【确定】直接提交（未选项视为弃权）\n🔙 点击【取消】留在页面进行补选`;
       
-      if (!confirm(confirmMsg)) {
+      if (!confirm(msg)) {
         submitting = false;
-        return; // 用户选择取消，留在当前页面补选
+        return; // 用户选择取消，中断提交，留在当前页面
       }
     }
 
-    // 5. 写入投票数据 (若全部弃权则跳过插入，避免空数组报错)
+    // 5. 写入投票数据 (若全部弃权则跳过 insert，避免空数组报错)
     if (voteArray.length > 0) {
       const { error: voteError } = await db.from('votes').insert(voteArray);
       if (voteError) {
         alert("投票记录写入失败：" + voteError.message);
-        submitting = false;
-        return;
+        submitting = false; return;
       }
     }
 
@@ -164,20 +186,17 @@ async function submitVote() {
 
     if (updateError) {
       alert("更新投票状态失败：" + updateError.message);
-      submitting = false;
-      return;
+      submitting = false; return;
     }
 
     // 7. 显示成功覆盖层
     const overlay = document.getElementById('successOverlay');
     if (overlay) overlay.style.display = 'flex';
 
-    // 绑定关闭/跳转逻辑
     window.closePage = function () {
       if (overlay) overlay.style.display = 'none';
       window.open('', '_self');
       window.close();
-      // 兼容部分移动端浏览器不允许 window.close() 的降级方案
       setTimeout(() => { location.href = 'about:blank'; }, 500);
     };
 
