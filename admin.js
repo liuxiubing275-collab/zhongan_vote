@@ -186,7 +186,15 @@ async function loadResults(){
 
 Object.keys(positionMap).forEach(position => {
 
-    (positionMap[position] || []).sort(
+    // 防止为空
+
+    if(!Array.isArray(positionMap[position])){
+
+        positionMap[position] = [];
+
+    }
+
+    positionMap[position].sort(
         (a,b)=>b.votes-a.votes
     );
 
