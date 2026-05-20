@@ -184,12 +184,13 @@ async function loadResults(){
         // 排序
         // =====================
 
-        Object.keys(positionMap).forEach(position => {
+Object.keys(positionMap).forEach(position => {
 
-            positionMap[position]
-                .sort((a,b)=>b.votes-a.votes);
+    (positionMap[position] || []).sort(
+        (a,b)=>b.votes-a.votes
+    );
 
-        });
+});
 
         // =====================
         // 渲染
