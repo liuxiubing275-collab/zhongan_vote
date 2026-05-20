@@ -13,16 +13,14 @@ html, body {
   overflow:hidden;
 }
 
-/* 顶部标题 */
 header {
   text-align:center;
   padding:10px;
   background:#1e3a8a;
   color:white;
-  font-size:2em;
+  font-size:3vh; /* 标题字号随屏幕高度 */
 }
 
-/* 手动输入区域 */
 #manualInput {
   display:flex;
   justify-content:center;
@@ -30,25 +28,21 @@ header {
   gap:10px;
   margin:5px 0;
   flex-wrap:wrap;
+  font-size:2vh;
 }
-#manualInput input { width:100px; padding:5px; font-size:1em; }
-#manualInput button {
-  padding:5px 10px; border-radius:4px; border:none;
-  background:#16a34a; color:white; cursor:pointer;
-}
+#manualInput input { width:80px; padding:5px; font-size:2vh; }
+#manualInput button { padding:5px 10px; font-size:2vh; border-radius:4px; border:none; background:#16a34a; color:white; cursor:pointer; }
 #manualInput button:hover { background:#15803d; }
 
-#summary { text-align:center; font-size:1.2em; margin-bottom:5px; }
+#summary { text-align:center; font-size:2.5vh; margin-bottom:5px; }
 
-/* 满屏岗位布局 */
 #results {
   display:grid;
   grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(3, auto);
+  grid-template-rows: repeat(3, 1fr);
   gap: 10px;
-  height: calc(100% - 140px);
+  height: calc(100% - 150px);
   padding:5px;
-  overflow:hidden;
 }
 
 /* 每个岗位组 */
@@ -58,6 +52,7 @@ header {
   padding:5px;
   display:flex;
   flex-direction:column;
+  justify-content:flex-start;
   height:100%;
   box-shadow:0 1px 4px rgba(0,0,0,0.1);
 }
@@ -66,30 +61,32 @@ header {
 .group-title {
   text-align:center;
   font-weight:bold;
-  font-size: calc(14px + 0.8vw);
+  font-size:2.5vh; /* 标题随屏幕高度自适应 */
   margin-bottom:5px;
   color:#1e3a8a;
 }
 
-/* 每个候选人卡片 */
+/* 候选人卡片 */
 .candidate-card {
   background:#e8f0fe;
   border-radius:6px;
-  padding:5px;
   margin-bottom:4px;
   flex:1;
   display:flex;
   flex-direction:column;
   justify-content:center;
   align-items:center;
-  font-size: calc(10px + 0.5vw);
+  text-align:center;
+  height: calc((100% - 3vh)/3); /* 每个岗位内均分高度 */
+  box-sizing:border-box;
+  font-size:2.5vh; /* 字号随屏幕高度 */
 }
 
-/* 投票信息 */
 .candidate-stats {
   display:flex;
   gap:5px;
-  margin-top:3px;
+  margin-top:2px;
+  font-size:2vh; /* 投票数与百分比随屏幕自适应 */
 }
 .candidate-stats .votes{}
 .candidate-stats .rate{ font-weight:bold; padding:2px 6px; border-radius:4px; color:white; }
@@ -112,9 +109,9 @@ header {
 .login-box button:hover{ background:#1e40af; }
 </style>
 </head>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <body>
 
-<!-- 登录遮罩 -->
 <div id="loginOverlay">
   <div class="login-box">
     <h2>后台登录</h2>
@@ -132,6 +129,7 @@ header {
   <span id="manualInfo"></span>
   <button id="resetBtn">复位投票</button>
   <button id="refreshBtn">刷新数据</button>
+  <button id="exportExcelBtn">导出 Excel</button>
 </div>
 
 <div id="summary">
@@ -142,9 +140,9 @@ header {
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script>
-// ================= Supabase 初始化
+// 初始化 Supabase
 const supabaseUrl='https://bhilewmilbhxowxwwyfq.supabase.co';
-const supabaseKey='sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
+const supabaseKey='你的SupabaseKey';
 const db = supabase.createClient(supabaseUrl,supabaseKey);
 const ADMIN_PASSWORD='123456';
 
@@ -156,7 +154,6 @@ const manualInput=document.getElementById('manualVoterInput');
 const manualInfo=document.getElementById('manualInfo');
 const confirmVoterBtn=document.getElementById('confirmVoterBtn');
 
-// 登录
 function login(){
   const password=document.getElementById('adminPassword').value;
   if(password===ADMIN_PASSWORD){
@@ -165,10 +162,8 @@ function login(){
   }else{alert('密码错误');}
 }
 
-// 刷新
 refreshBtn.addEventListener('click', loadResults);
 
-// 手动输入参与人数
 confirmVoterBtn.addEventListener('click', ()=>{
   const val=Number(manualInput.value);
   if(val>0){
@@ -178,7 +173,6 @@ confirmVoterBtn.addEventListener('click', ()=>{
   }else{manualInfo.textContent='';}
 });
 
-// 重置投票
 resetBtn.addEventListener('click',async ()=>{
   if(!confirm('确认要复位所有序列号和清空投票数据吗？')) return;
   await db.from('votes').delete().neq('id',0);
@@ -187,18 +181,14 @@ resetBtn.addEventListener('click',async ()=>{
   loadResults();
 });
 
-// 加载统计
 async function loadResults(){
   resultsDiv.innerHTML='';
-  const {data:voterData,error:voterError}=await db.from('votes').select('user_code');
-  if(voterError){alert('获取总参与人数失败：'+voterError.message);return;}
+  const {data:voterData}=await db.from('votes').select('user_code');
   const uniqueUsers=[...new Set(voterData.map(v=>v.user_code))];
   totalVotersSpan.textContent=uniqueUsers.length;
 
-  const {data:candidates,error:candidatesError}=await db.from('candidates').select('*');
-  if(candidatesError){alert('获取候选人失败：'+candidatesError.message);return;}
+  const {data:candidates}=await db.from('candidates').select('*');
 
-  // 分组 15 个岗位
   const groups={};
   for(const c of candidates){
     if(!groups[c.position]) groups[c.position]=[];
@@ -209,6 +199,7 @@ async function loadResults(){
     const groupDiv=document.createElement('div');
     groupDiv.className='candidate-group';
     groupDiv.innerHTML=`<div class="group-title">${pos}</div>`;
+
     for(const c of groups[pos]){
       const {data:votes}=await db.from('votes').select('*').eq('candidate_id',Number(c.id));
       const voteCount=votes?votes.length:0;
@@ -219,7 +210,6 @@ async function loadResults(){
       card.innerHTML=`
         <div class="candidate-info">
           <div class="name">${c.name}</div>
-          <div class="position">${c.position}</div>
         </div>
         <div class="candidate-stats">
           <div class="votes">${voteCount}票</div>
