@@ -173,7 +173,6 @@
 <div class="status-msg" id="statusMsg"></div>
 
 <script>
-    // 🔐 Supabase 配置
     const SUPABASE_URL = 'https://bhilewmilbhxowxwwyfq.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
 
@@ -183,16 +182,14 @@
     } else {
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 状态管理
         let state = {
             expectedParticipants: 66,
             actualVoters: 0,
-            actualVotersIsEstimated: false, // 标记是否为估算值
+            actualVotersIsEstimated: false,
             positionsMap: new Map(),
             candidatesList: []
         };
 
-        // DOM 缓存
         const gridEl = document.getElementById('dashboardGrid');
         const statusMsgEl = document.getElementById('statusMsg');
         const connectionStatusEl = document.getElementById('connectionStatus');
@@ -211,32 +208,64 @@
             setTimeout(() => statusMsgEl.classList.remove('show'), 2000);
         }
 
-        // ✅ 修复：正确计算实际投票人数（去重）
-        function calculateActualVoters(votes, hasCodeColumn) {
-            if (!votes || votes.length === 0) return 0;
+        // ✅ 核心修复：正确去重统计实际投票人数
+        function calculateActualVoters(votes) {
+            if (!votes || votes.length === 0) {
+                console.log('📊 无投票数据');
+                return 0;
+            }
+            
+            // 检查是否有 code 列
+            const hasCodeColumn = 'code' in votes[0];
+            console.log('📊 数据检查:', {
+                总记录数: votes.length,
+                有code列: hasCodeColumn,
+                第一条记录: votes[0]
+            });
             
             if (hasCodeColumn) {
-                // 有 code 列：统计不同的 code 数量（一人一票）
+                // 统计不同的 code（一人一票）
                 const uniqueCodes = new Set();
+                const codeCountMap = new Map();
+                
                 votes.forEach(v => {
                     if (v.code && v.code.trim() !== '') {
-                        uniqueCodes.add(v.code);
+                        const code = v.code.trim();
+                        codeCountMap.set(code, (codeCountMap.get(code) || 0) + 1);
+                        uniqueCodes.add(code);
                     }
                 });
-                // 如果所有 code 都为空，回退到记录数
-                return uniqueCodes.size > 0 ? uniqueCodes.size : votes.length;
+                
+                // 检查重复投票
+                let duplicateCount = 0;
+                codeCountMap.forEach((count, code) => {
+                    if (count > 1) {
+                        duplicateCount += count - 1;
+                        console.warn(`⚠️ Code "${code}" 重复投票 ${count} 次`);
+                    }
+                });
+                
+                const uniqueVoterCount = uniqueCodes.size;
+                console.log('📊 去重统计结果:', {
+                    唯一code数: uniqueVoterCount,
+                    重复记录数: duplicateCount,
+                    总记录数: votes.length
+                });
+                
+                state.actualVotersIsEstimated = false;
+                return uniqueVoterCount;
+                
             } else {
-                // 无 code 列：无法去重，返回记录数并标记为估算
+                // 没有 code 列，无法去重
+                console.warn('⚠️ 无 code 列，使用总记录数作为估算值');
                 state.actualVotersIsEstimated = true;
                 return votes.length;
             }
         }
 
-        // ✅ 修复：安全计算参与率
         function calculateParticipationRate(actual, expected) {
             if (!expected || expected <= 0) return 0;
             if (!actual || actual < 0) return 0;
-            // 限制最大值为 100%
             return Math.min((actual / expected) * 100, 100);
         }
 
@@ -279,7 +308,6 @@
 
         async function fetchAndRender() {
             try {
-                // 1. 获取候选人
                 const { data: candidates, error: candErr } = await supabaseClient
                     .from('candidates')
                     .select('*')
@@ -287,7 +315,6 @@
                 
                 if (candErr) throw candErr;
 
-                // 2. 获取投票记录（只查必要字段）
                 const { data: votes, error: voteErr } = await supabaseClient
                     .from('votes')
                     .select('candidate_id, code, id');
@@ -299,30 +326,27 @@
                 } else {
                     const safeVotes = votes || [];
                     
-                    // ✅ 检测是否有 code 列（通过第一条数据）
-                    const hasCodeColumn = safeVotes.length > 0 && 'code' in safeVotes[0];
+                    // ✅ 使用修复后的去重统计
+                    state.actualVoters = calculateActualVoters(safeVotes);
                     
-                    // ✅ 正确计算实际投票人数
-                    state.actualVoters = calculateActualVoters(safeVotes, hasCodeColumn);
-                    
-                    // ✅ 更新 UI 提示
+                    // 更新 UI 提示
                     if (state.actualVotersIsEstimated) {
                         voterCountWarningEl.style.display = 'inline';
                         calcMethodDisplayEl.textContent = '📊 统计方式: 记录数(估算)';
                         calcMethodDisplayEl.style.color = 'var(--warn-orange)';
                     } else {
                         voterCountWarningEl.style.display = 'none';
-                        calcMethodDisplayEl.textContent = hasCodeColumn ? '📊 统计方式: 去重统计' : '📊 统计方式: 记录数';
+                        calcMethodDisplayEl.textContent = '📊 统计方式: 去重统计';
                         calcMethodDisplayEl.style.color = '#28a745';
                     }
 
-                    // 3. 统计每位候选人票数
+                    // 统计每位候选人票数
                     const voteCount = {};
                     safeVotes.forEach(v => {
                         voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1;
                     });
 
-                    // 4. 按岗位分组
+                    // 按岗位分组
                     const positionsMap = new Map();
                     const candidatesList = [];
                     
@@ -394,7 +418,6 @@
             }
         }
 
-        // ✅ 修复：参与率计算 + 边界保护
         function updateStats() {
             if (actualVotesDisplayEl) {
                 actualVotesDisplayEl.textContent = state.actualVoters;
@@ -404,7 +427,6 @@
             if (totalEl) totalEl.textContent = state.actualVoters;
             
             if (participationRateEl) {
-                // ✅ 使用安全计算函数
                 const rate = calculateParticipationRate(
                     state.actualVoters, 
                     state.expectedParticipants
