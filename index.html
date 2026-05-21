@@ -1,148 +1,447 @@
 <!DOCTYPE html>
-<html lang="zh">
-
+<html lang="zh-CN">
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>投票后台</title>
-
-    <!-- Supabase -->
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中干竞聘投票满屏后台</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
-
-        body{
-
-            margin:0;
-            padding:20px;
-
-            font-family:"Microsoft YaHei";
-
-            background:#f4f6fb;
+        :root {
+            --primary-blue: #2c5aa0;
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --header-height: 80px;
+            --green-tag: #28a745;
+            --red-tag: #dc3545;
+            --text-main: #333;
         }
-
-        #loginBox{
-
-            width:400px;
-
-            margin:120px auto;
-
-            background:#fff;
-
-            padding:40px;
-
-            border-radius:16px;
-
-            box-shadow:0 4px 16px rgba(0,0,0,0.1);
-
-            text-align:center;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
-
-        #loginBox h1{
-
-            margin-bottom:30px;
-
-            color:#2563eb;
+        header {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 0 20px;
+            height: var(--header-height);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 100;
         }
-
-        #adminPassword{
-
-            width:100%;
-
-            height:50px;
-
-            font-size:20px;
-
-            border:1px solid #ccc;
-
-            border-radius:10px;
-
-            padding:0 15px;
+        h1 { font-size: 24px; margin-bottom: 10px; letter-spacing: 2px; }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 15px;
+            border-radius: 8px;
+            flex-wrap: wrap;
         }
-
-        .login-btn{
-
-            width:100%;
-
-            height:50px;
-
-            margin-top:20px;
-
-            border:none;
-
-            border-radius:10px;
-
-            background:#2563eb;
-
-            color:#fff;
-
-            font-size:20px;
-
-            cursor:pointer;
+        .controls label { font-size: 14px; }
+        .controls input {
+            width: 60px; padding: 4px; border: none;
+            border-radius: 4px; text-align: center; font-size: 14px;
         }
-
-        #adminPanel{
-
-            display:none;
+        .btn {
+            padding: 6px 12px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 13px; font-weight: bold;
+            transition: opacity 0.2s;
         }
-
+        .btn:hover { opacity: 0.8; }
+        .btn-confirm { background-color: #28a745; color: white; }
+        .btn-reset { background-color: #dc3545; color: white; }
+        .btn-refresh { background-color: #17a2b8; color: white; }
+        .btn-export { background-color: #ffc107; color: #333; }
+        .stats-bar {
+            display: flex; gap: 20px; font-size: 14px; margin-top: 5px;
+        }
+        .stat-item span { font-weight: bold; color: #ffd700; }
+        main { flex: 1; padding: 15px; overflow-y: auto; }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            height: 100%;
+        }
+        .position-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .card-header {
+            background-color: #e9ecef;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: var(--primary-blue);
+            border-bottom: 1px solid #dee2e6;
+        }
+        .card-body {
+            flex: 1;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+        .candidate-row {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .candidate-row:last-child { border-bottom: none; }
+        .cand-name { font-size: 15px; margin-bottom: 4px; color: #333; }
+        .cand-stats {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13px; color: #666;
+        }
+        .vote-count { font-weight: bold; }
+        .percentage-tag {
+            padding: 2px 6px; border-radius: 4px; color: white;
+            font-size: 12px; font-weight: bold; min-width: 40px; text-align: center;
+        }
+        .tag-green { background-color: var(--green-tag); }
+        .tag-red { background-color: var(--red-tag); }
+        .status-msg {
+            position: fixed; bottom: 20px; right: 20px;
+            padding: 10px 20px; border-radius: 6px;
+            background: #333; color: white; font-size: 13px;
+            display: none; z-index: 999;
+        }
+        .status-msg.show { display: block; animation: fadeOut 2s forwards; }
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: translateY(0); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+        @media (max-width: 1400px) { .grid-container { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 1000px) { .grid-container { grid-template-columns: repeat(3, 1fr); } }
     </style>
-
 </head>
-
 <body>
 
-    <!-- 登录 -->
-
-    <div id="loginBox">
-
-        <h1>后台登录</h1>
-
-        <input
-            type="password"
-            id="adminPassword"
-            placeholder="请输入密码"
-        >
-
-        <button
-            class="login-btn"
-            onclick="login()"
-        >
-            登录
-        </button>
-
+<header>
+    <h1>中干竞聘投票满屏后台</h1>
+    <div class="controls">
+        <label>应到人数:</label>
+        <input type="number" id="expectedInput" value="66">
+        <button class="btn btn-confirm" onclick="updateExpected()">确认</button>
+        <span style="color: #ddd; margin: 0 5px;">|</span>
+        <span>实际投票: <span id="actualVotesDisplay">0</span></span>
+        <span>参与率: <span id="participationRate">0%</span></span>
+        <button class="btn btn-reset" onclick="resetVotes()">复位</button>
+        <button class="btn btn-refresh" onclick="fetchAndRender()">刷新</button>
+        <button class="btn btn-export" onclick="exportExcel()">导出 Excel</button>
     </div>
-
-    <!-- 后台 -->
-
-    <div id="adminPanel">
-
-        <h1>后台管理系统</h1>
-
-        <button onclick="refreshResults()">
-            刷新
-        </button>
-
-        <button onclick="resetVotes()">
-            复位投票
-        </button>
-
-        <div id="resultsContainer"></div>
-
+    <div class="stats-bar">
+        <div class="stat-item">实时在线: <span id="connectionStatus">🟡 连接中...</span></div>
     </div>
+</header>
 
-    <!-- VERY IMPORTANT -->
-    <!-- admin.js 放最后 -->
+<main>
+    <div class="grid-container" id="dashboardGrid"></div>
+</main>
 
-    <script src="admin.js?v=20260520"></script>
+<div class="status-msg" id="statusMsg"></div>
 
+<script>
+    // 🔐 Supabase 配置
+    const SUPABASE_URL = 'https://bhilewmilbhxowxwwyfq.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // 状态管理
+    let state = {
+        expectedParticipants: 66,
+        actualVoters: 0,
+        positionsMap: new Map(), // position -> { candidates: Map<name, votes> }
+        candidatesList: []       // 扁平列表用于导出
+    };
+
+    const gridEl = document.getElementById('dashboardGrid');
+    const statusMsgEl = document.getElementById('statusMsg');
+    const connectionStatusEl = document.getElementById('connectionStatus');
+
+    // 显示状态消息
+    function showStatus(msg, type = 'info') {
+        statusMsgEl.textContent = msg;
+        statusMsgEl.className = `status-msg show ${type}`;
+        setTimeout(() => statusMsgEl.classList.remove('show'), 2000);
+    }
+
+    // 初始化
+    async function init() {
+        // 检查连接
+        const { data, error } = await supabase.from('candidates').select('count').limit(1);
+        if (error) {
+            connectionStatusEl.textContent = '🔴 连接失败';
+            showStatus('⚠️ Supabase 连接异常，请检查网络或 RLS 策略', 'error');
+            console.error('Supabase 连接错误:', error);
+            // 降级：使用本地模拟数据
+            loadMockData();
+            return;
+        }
+        connectionStatusEl.textContent = '🟢 已连接';
+        showStatus('✅ 数据库连接成功');
+        
+        // 设置实时订阅
+        setupRealtime();
+        
+        // 首次加载数据
+        await fetchAndRender();
+    }
+
+    // 设置实时订阅（投票新增时自动刷新）
+    function setupRealtime() {
+        supabase
+            .channel('votes_channel')
+            .on('postgres_changes', { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'votes' 
+            }, () => {
+                showStatus('🔄 有新投票，自动刷新...');
+                fetchAndRender();
+            })
+            .subscribe();
+    }
+
+    // 从 Supabase 获取并渲染数据
+    async function fetchAndRender() {
+        try {
+            // 1. 获取所有候选人
+            const { data: candidates, error: candErr } = await supabase
+                .from('candidates')
+                .select('*')
+                .order('position', { ascending: true });
+            
+            if (candErr) throw candErr;
+
+            // 2. 获取所有投票并聚合
+            const { data: votes, error: voteErr } = await supabase
+                .from('votes')
+                .select('candidate_id');
+            
+            if (voteErr) throw voteErr;
+
+            // 3. 统计每位候选人的票数
+            const voteCount = {};
+            votes?.forEach(v => {
+                voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1;
+            });
+
+            // 4. 按岗位分组
+            const positionsMap = new Map();
+            const candidatesList = [];
+            
+            candidates?.forEach(cand => {
+                if (!positionsMap.has(cand.position)) {
+                    positionsMap.set(cand.position, []);
+                }
+                const votes = voteCount[cand.id] || 0;
+                positionsMap.get(cand.position).push({
+                    id: cand.id,
+                    name: cand.name,
+                    votes: votes,
+                    max_select: cand.max_select
+                });
+                candidatesList.push({
+                    position: cand.position,
+                    name: cand.name,
+                    votes: votes
+                });
+            });
+
+            // 5. 计算实际投票人数（去重：一个 code 只能投一次，这里简化为最大票数岗位的和）
+            // 更准确的做法：统计 votes 表中不同 code 的数量
+            const { count: voterCount } = await supabase
+                .from('votes')
+                .select('code', { count: 'exact', head: true });
+            
+            state.actualVoters = voterCount || 0;
+            state.positionsMap = positionsMap;
+            state.candidatesList = candidatesList;
+
+            // 6. 渲染
+            renderGrid();
+            updateStats();
+            
+        } catch (err) {
+            console.error('数据加载失败:', err);
+            showStatus('❌ 数据加载失败', 'error');
+        }
+    }
+
+    // 渲染网格
+    function renderGrid() {
+        gridEl.innerHTML = '';
+        
+        for (const [position, candidates] of state.positionsMap) {
+            const card = document.createElement('div');
+            card.className = 'position-card';
+            
+            let candidatesHtml = '';
+            candidates.forEach(cand => {
+                const rate = state.actualVoters > 0 
+                    ? (cand.votes / state.actualVoters) * 100 
+                    : 0;
+                const rateStr = Math.round(rate) + '%';
+                const tagClass = rate >= 50 ? 'tag-green' : 'tag-red';
+
+                candidatesHtml += `
+                    <div class="candidate-row">
+                        <div class="cand-name">${cand.name}</div>
+                        <div class="cand-stats">
+                            <span class="vote-count">${cand.votes}票</span>
+                            <span class="percentage-tag ${tagClass}">${rateStr}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            card.innerHTML = `
+                <div class="card-header">${position}</div>
+                <div class="card-body">${candidatesHtml}</div>
+            `;
+            gridEl.appendChild(card);
+        }
+    }
+
+    // 更新顶部统计
+    function updateStats() {
+        document.getElementById('actualVotesDisplay').textContent = state.actualVoters;
+        document.getElementById('totalParticipantsDisplay')?.textContent = state.actualVoters;
+        
+        const rate = state.expectedParticipants > 0 
+            ? (state.actualVoters / state.expectedParticipants) * 100 
+            : 0;
+        document.getElementById('participationRate').textContent = rate.toFixed(1) + '%';
+    }
+
+    // 更新应到人数
+    function updateExpected() {
+        const val = parseInt(document.getElementById('expectedInput').value);
+        if (!isNaN(val) && val > 0) {
+            state.expectedParticipants = val;
+            updateStats();
+            showStatus('✅ 参与基数已更新');
+        } else {
+            showStatus('⚠️ 请输入有效数字', 'error');
+        }
+    }
+
+    // 复位投票（清空 votes 表）
+    async function resetVotes() {
+        if (!confirm('⚠️ 确定要清空所有投票记录吗？此操作不可恢复！')) return;
+        
+        try {
+            showStatus('🔄 正在复位...');
+            const { error } = await supabase.from('votes').delete().neq('id', 0);
+            if (error) throw error;
+            
+            // 同时重置 codes 表的 used 状态
+            await supabase.from('codes').update({ used: false, used_at: null }).eq('used', true);
+            
+            state.actualVoters = 0;
+            await fetchAndRender();
+            showStatus('✅ 系统已复位至初始状态');
+        } catch (err) {
+            console.error('复位失败:', err);
+            showStatus('❌ 复位失败: ' + err.message, 'error');
+        }
+    }
+
+    // 导出 Excel
+    function exportExcel() {
+        if (state.candidatesList.length === 0) {
+            showStatus('⚠️ 暂无数据可导出', 'error');
+            return;
+        }
+
+        const data = [["岗位", "候选人", "得票数", "得票率", "达标状态(≥50%)"]];
+        
+        state.candidatesList.forEach(item => {
+            const rate = state.actualVoters > 0 
+                ? (item.votes / state.actualVoters) * 100 
+                : 0;
+            data.push([
+                item.position,
+                item.name,
+                item.votes,
+                (rate.toFixed(2) + '%'),
+                rate >= 50 ? '✅ 是' : '❌ 否'
+            ]);
+        });
+
+        // 添加汇总行
+        data.push([]);
+        data.push(["汇总", "", state.actualVoters, 
+                  `参与率: ${(state.actualVoters/state.expectedParticipants*100).toFixed(1)}%`, ""]);
+
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        ws['!cols'] = [{wch:18}, {wch:15}, {wch:10}, {wch:12}, {wch:15}];
+        
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "竞聘投票结果");
+        
+        const timestamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
+        XLSX.writeFile(wb, `竞聘投票结果_${timestamp}.xlsx`);
+        
+        showStatus('📥 导出成功');
+    }
+
+    // 降级：本地模拟数据（当 Supabase 不可用时）
+    function loadMockData() {
+        const mockPositions = [
+            { position: "发射机房副主任", candidates: [
+                {name:"候选人B1", votes:8}, {name:"候选人B2", votes:3}, {name:"候选人B3", votes:5}
+            ]},
+            { position: "中控机房主任", candidates: [
+                {name:"候选人C1", votes:6}, {name:"候选人C2", votes:2}
+            ]},
+            // ... 可根据需要扩展
+        ];
+        
+        state.positionsMap = new Map();
+        state.candidatesList = [];
+        state.actualVoters = 8; // 模拟值
+        
+        mockPositions.forEach(pos => {
+            const list = [];
+            pos.candidates.forEach(c => {
+                list.push({ name: c.name, votes: c.votes });
+                state.candidatesList.push({
+                    position: pos.position,
+                    name: c.name,
+                    votes: c.votes
+                });
+            });
+            state.positionsMap.set(pos.position, list);
+        });
+        
+        renderGrid();
+        updateStats();
+        showStatus('📦 使用本地模拟数据（数据库连接失败）', 'warn');
+    }
+
+    // 启动
+    init();
+</script>
 </body>
-
 </html>
