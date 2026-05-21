@@ -89,6 +89,11 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .card-header {
             background-color: #e9ecef;
@@ -173,6 +178,7 @@
 <div class="status-msg" id="statusMsg"></div>
 
 <script>
+    // 🔐 Supabase 配置
     const SUPABASE_URL = 'https://bhilewmilbhxowxwwyfq.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
 
@@ -208,56 +214,21 @@
             setTimeout(() => statusMsgEl.classList.remove('show'), 2000);
         }
 
-        // ✅ 核心修复：正确去重统计实际投票人数
+        // ✅ 核心修复：使用 user_code 统计实际投票人数
         function calculateActualVoters(votes) {
-            if (!votes || votes.length === 0) {
-                console.log('📊 无投票数据');
-                return 0;
-            }
+            if (!votes || votes.length === 0) return 0;
             
-            // 检查是否有 code 列
-            const hasCodeColumn = 'code' in votes[0];
-            console.log('📊 数据检查:', {
-                总记录数: votes.length,
-                有code列: hasCodeColumn,
-                第一条记录: votes[0]
-            });
+            const hasUserCode = 'user_code' in votes[0];
             
-            if (hasCodeColumn) {
-                // 统计不同的 code（一人一票）
+            if (hasUserCode) {
                 const uniqueCodes = new Set();
-                const codeCountMap = new Map();
-                
                 votes.forEach(v => {
-                    if (v.code && v.code.trim() !== '') {
-                        const code = v.code.trim();
-                        codeCountMap.set(code, (codeCountMap.get(code) || 0) + 1);
-                        uniqueCodes.add(code);
+                    if (v.user_code && v.user_code.trim() !== '') {
+                        uniqueCodes.add(v.user_code.trim());
                     }
                 });
-                
-                // 检查重复投票
-                let duplicateCount = 0;
-                codeCountMap.forEach((count, code) => {
-                    if (count > 1) {
-                        duplicateCount += count - 1;
-                        console.warn(`⚠️ Code "${code}" 重复投票 ${count} 次`);
-                    }
-                });
-                
-                const uniqueVoterCount = uniqueCodes.size;
-                console.log('📊 去重统计结果:', {
-                    唯一code数: uniqueVoterCount,
-                    重复记录数: duplicateCount,
-                    总记录数: votes.length
-                });
-                
-                state.actualVotersIsEstimated = false;
-                return uniqueVoterCount;
-                
+                return uniqueCodes.size;
             } else {
-                // 没有 code 列，无法去重
-                console.warn('⚠️ 无 code 列，使用总记录数作为估算值');
                 state.actualVotersIsEstimated = true;
                 return votes.length;
             }
@@ -281,7 +252,10 @@
                 connectionStatusEl.textContent = '🟢 已连接';
                 showStatus('✅ 数据库连接成功');
                 
+                // ✅ 设置实时监听（监听投票和候选人变动）
                 setupRealtime();
+                
+                // 首次加载数据
                 await fetchAndRender();
                 
             } catch (err) {
@@ -292,32 +266,54 @@
             }
         }
 
+        // ✅ 增强版：同时监听 votes 和 candidates 表的变化
         function setupRealtime() {
-            supabaseClient
+            // 1. 监听投票 (INSERT)
+            const votesChannel = supabaseClient
                 .channel('votes_channel')
                 .on('postgres_changes', { 
                     event: 'INSERT', 
                     schema: 'public', 
                     table: 'votes' 
                 }, () => {
-                    showStatus('🔄 有新投票，自动刷新...');
+                    showStatus('🗳️ 收到新投票');
                     fetchAndRender();
-                })
-                .subscribe();
+                });
+
+            // 2. 监听候选人表变动 (INSERT, UPDATE, DELETE)
+            const candidatesChannel = supabaseClient
+                .channel('candidates_channel')
+                .on('postgres_changes', { 
+                    event: '*', // 监听所有变动
+                    schema: 'public', 
+                    table: 'candidates' 
+                }, (payload) => {
+                    console.log(' 候选人数据发生变动:', payload);
+                    showStatus('👥 岗位/候选人信息已更新');
+                    // 当候选人表变动时，重新拉取最新数据
+                    fetchAndRender();
+                });
+
+            // 订阅两个通道
+            votesChannel.subscribe();
+            candidatesChannel.subscribe();
         }
 
         async function fetchAndRender() {
             try {
+                // 1. 获取最新候选人列表
                 const { data: candidates, error: candErr } = await supabaseClient
                     .from('candidates')
                     .select('*')
-                    .order('position', { ascending: true });
+                    .order('position', { ascending: true })
+                    .order('id', { ascending: true }); // 保持顺序稳定
                 
                 if (candErr) throw candErr;
 
+                // 2. 获取投票记录
                 const { data: votes, error: voteErr } = await supabaseClient
                     .from('votes')
-                    .select('candidate_id, code, id');
+                    .select('candidate_id, user_code, id');
                 
                 if (voteErr) {
                     console.warn('投票查询警告:', voteErr);
@@ -326,7 +322,7 @@
                 } else {
                     const safeVotes = votes || [];
                     
-                    // ✅ 使用修复后的去重统计
+                    // 计算实际投票人数
                     state.actualVoters = calculateActualVoters(safeVotes);
                     
                     // 更新 UI 提示
@@ -336,7 +332,7 @@
                         calcMethodDisplayEl.style.color = 'var(--warn-orange)';
                     } else {
                         voterCountWarningEl.style.display = 'none';
-                        calcMethodDisplayEl.textContent = '📊 统计方式: 去重统计';
+                        calcMethodDisplayEl.textContent = ' 统计方式: 去重统计';
                         calcMethodDisplayEl.style.color = '#28a745';
                     }
 
@@ -346,7 +342,7 @@
                         voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1;
                     });
 
-                    // 按岗位分组
+                    // 3. 按岗位分组并构建数据结构
                     const positionsMap = new Map();
                     const candidatesList = [];
                     
@@ -374,6 +370,7 @@
                     state.candidatesList = candidatesList;
                 }
 
+                // 4. 渲染界面
                 renderGrid();
                 updateStats();
                 
@@ -387,6 +384,7 @@
             if (!gridEl) return;
             gridEl.innerHTML = '';
             
+            // 遍历按 position 分组的 Map
             for (const [position, candidates] of state.positionsMap) {
                 const card = document.createElement('div');
                 card.className = 'position-card';
@@ -460,15 +458,6 @@
                 
                 if (deleteError) throw deleteError;
                 
-                try {
-                    await supabaseClient
-                        .from('codes')
-                        .update({ used: false, used_at: null })
-                        .eq('used', true);
-                } catch (e) {
-                    console.warn('codes 表重置跳过:', e);
-                }
-                
                 state.actualVoters = 0;
                 state.actualVotersIsEstimated = false;
                 await fetchAndRender();
@@ -525,45 +514,6 @@
                 ]},
                 { position: "中控机房主任", candidates: [
                     {name:"候选人C1", votes:6}, {name:"候选人C2", votes:2}
-                ]},
-                { position: "中控机房副主任", candidates: [
-                    {name:"候选人D1", votes:5}, {name:"候选人D2", votes:5}, {name:"候选人D3", votes:6}
-                ]},
-                { position: "维修室主任", candidates: [
-                    {name:"候选人E1", votes:0}, {name:"候选人E2", votes:8}
-                ]},
-                { position: "维修室副主任", candidates: [
-                    {name:"候选人F1", votes:6}, {name:"候选人F2", votes:7}, {name:"候选人F3", votes:2}
-                ]},
-                { position: "技办主任", candidates: [
-                    {name:"候选人G1", votes:2}, {name:"候选人G2", votes:5}
-                ]},
-                { position: "技办室副主任", candidates: [
-                    {name:"候选人H1", votes:6}, {name:"候选人H2", votes:1}
-                ]},
-                { position: "台办主任", candidates: [
-                    {name:"候选人I1", votes:5}, {name:"候选人I2", votes:2}
-                ]},
-                { position: "行政科长", candidates: [
-                    {name:"候选人J1", votes:4}, {name:"候选人J2", votes:3}
-                ]},
-                { position: "财务科长", candidates: [
-                    {name:"候选人K1", votes:6}, {name:"候选人K2", votes:2}
-                ]},
-                { position: "人事科长", candidates: [
-                    {name:"候选人L1", votes:6}, {name:"候选人L2", votes:2}
-                ]},
-                { position: "保卫科长", candidates: [
-                    {name:"候选人M1", votes:4}, {name:"候选人M2", votes:3}
-                ]},
-                { position: "党办主任", candidates: [
-                    {name:"候选人N1", votes:0}, {name:"候选人N2", votes:8}
-                ]},
-                { position: "离退休科长", candidates: [
-                    {name:"候选人O1", votes:0}, {name:"候选人O2", votes:8}
-                ]},
-                { position: "发射机房主任", candidates: [
-                    {name:"张三", votes:1}, {name:"李四", votes:6}
                 ]}
             ];
             
@@ -576,17 +526,13 @@
                 const list = [];
                 pos.candidates.forEach(c => {
                     list.push({ name: c.name, votes: c.votes });
-                    state.candidatesList.push({
-                        position: pos.position, name: c.name, votes: c.votes
-                    });
+                    state.candidatesList.push({ position: pos.position, name: c.name, votes: c.votes });
                 });
                 state.positionsMap.set(pos.position, list);
             });
             
             renderGrid();
             updateStats();
-            voterCountWarningEl.style.display = 'none';
-            calcMethodDisplayEl.textContent = '📊 统计方式: 本地模拟';
         }
 
         init();
