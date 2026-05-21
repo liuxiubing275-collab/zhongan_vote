@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中干竞聘投票满屏后台</title>
-    <!-- 引入 SheetJS 用于导出 Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-    <!-- 引入 Supabase JS 客户端 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -175,7 +173,6 @@
         console.error('Supabase 库未加载，请检查网络或 CDN 链接');
         document.getElementById('connectionStatus').textContent = '🔴 库加载失败';
     } else {
-        // ✅ 修复：使用 supabaseClient 避免与全局 window.supabase 冲突
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // 状态管理
@@ -183,7 +180,8 @@
             expectedParticipants: 66,
             actualVoters: 0,
             positionsMap: new Map(),
-            candidatesList: []
+            candidatesList: [],
+            hasCodeColumn: true // 标记是否有 code 列
         };
 
         // DOM 元素缓存
@@ -261,54 +259,65 @@
                 
                 if (candErr) throw candErr;
 
-                // 2. 获取所有投票记录
+                // 2. ✅ 修复：只选择 candidate_id，避免 code 列不存在的问题
                 const { data: votes, error: voteErr } = await supabaseClient
                     .from('votes')
-                    .select('candidate_id, code');
+                    .select('candidate_id, id'); // 选择 id 用于计数
                 
-                if (voteErr) throw voteErr;
-
-                // 3. 统计每位候选人的票数
-                const voteCount = {};
-                // ✅ 修复：增加空值检查
-                const safeVotes = votes || [];
-                safeVotes.forEach(v => {
-                    voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1;
-                });
-
-                // 4. 计算实际投票人数（去重：统计不同的 code）
-                const uniqueCodes = new Set();
-                safeVotes.forEach(v => {
-                    if (v.code) uniqueCodes.add(v.code);
-                });
-                state.actualVoters = uniqueCodes.size;
-
-                // 5. 按岗位分组
-                const positionsMap = new Map();
-                const candidatesList = [];
-                
-                if (candidates) {
-                    candidates.forEach(cand => {
-                        if (!positionsMap.has(cand.position)) {
-                            positionsMap.set(cand.position, []);
-                        }
-                        const votes = voteCount[cand.id] || 0;
-                        positionsMap.get(cand.position).push({
-                            id: cand.id,
-                            name: cand.name,
-                            votes: votes,
-                            max_select: cand.max_select
-                        });
-                        candidatesList.push({
-                            position: cand.position,
-                            name: cand.name,
-                            votes: votes
-                        });
+                if (voteErr) {
+                    console.warn('投票表查询警告:', voteErr);
+                    // 如果查询失败，使用空数组
+                    state.actualVoters = 0;
+                } else {
+                    // 3. 统计每位候选人的票数
+                    const voteCount = {};
+                    const safeVotes = votes || [];
+                    
+                    safeVotes.forEach(v => {
+                        voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1;
                     });
-                }
 
-                state.positionsMap = positionsMap;
-                state.candidatesList = candidatesList;
+                    // 4. ✅ 修复：计算实际投票人数
+                    // 如果有 code 列，去重统计；否则使用总投票记录数
+                    if (state.hasCodeColumn) {
+                        // 尝试从 votes 中提取 code（如果存在）
+                        const uniqueCodes = new Set();
+                        safeVotes.forEach(v => {
+                            if (v.code) uniqueCodes.add(v.code);
+                        });
+                        state.actualVoters = uniqueCodes.size > 0 ? uniqueCodes.size : safeVotes.length;
+                    } else {
+                        // 没有 code 列，使用投票记录总数作为实际投票人数
+                        state.actualVoters = safeVotes.length;
+                    }
+
+                    // 5. 按岗位分组
+                    const positionsMap = new Map();
+                    const candidatesList = [];
+                    
+                    if (candidates) {
+                        candidates.forEach(cand => {
+                            if (!positionsMap.has(cand.position)) {
+                                positionsMap.set(cand.position, []);
+                            }
+                            const votes = voteCount[cand.id] || 0;
+                            positionsMap.get(cand.position).push({
+                                id: cand.id,
+                                name: cand.name,
+                                votes: votes,
+                                max_select: cand.max_select
+                            });
+                            candidatesList.push({
+                                position: cand.position,
+                                name: cand.name,
+                                votes: votes
+                            });
+                        });
+                    }
+
+                    state.positionsMap = positionsMap;
+                    state.candidatesList = candidatesList;
+                }
 
                 // 6. 渲染界面
                 renderGrid();
@@ -316,7 +325,7 @@
                 
             } catch (err) {
                 console.error('数据加载失败:', err);
-                showStatus('❌ 数据加载失败', 'error');
+                showStatus('❌ 数据加载失败: ' + err.message, 'error');
             }
         }
 
@@ -390,7 +399,7 @@
 
         // 复位投票
         async function resetVotes() {
-            if (!confirm('️ 确定要清空所有投票记录吗？此操作不可恢复！')) return;
+            if (!confirm('⚠️ 确定要清空所有投票记录吗？此操作不可恢复！')) return;
             
             try {
                 showStatus('🔄 正在复位...');
@@ -403,13 +412,15 @@
                 
                 if (deleteError) throw deleteError;
                 
-                // 重置 codes 表的 used 状态
-                const { error: updateError } = await supabaseClient
-                    .from('codes')
-                    .update({ used: false, used_at: null })
-                    .eq('used', true);
-                
-                if (updateError) throw updateError;
+                // 尝试重置 codes 表（如果存在）
+                try {
+                    await supabaseClient
+                        .from('codes')
+                        .update({ used: false, used_at: null })
+                        .eq('used', true);
+                } catch (codeErr) {
+                    console.warn('codes 表重置失败（可能不存在）:', codeErr);
+                }
                 
                 state.actualVoters = 0;
                 await fetchAndRender();
