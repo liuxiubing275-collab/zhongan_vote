@@ -90,6 +90,7 @@
             flex-direction: column;
             overflow: hidden;
             animation: fadeIn 0.3s ease-in-out;
+            min-height: 200px;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -97,37 +98,64 @@
         }
         .card-header {
             background-color: #e9ecef;
-            padding: 10px;
+            padding: 12px;
             text-align: center;
             font-weight: bold;
             font-size: 16px;
             color: var(--primary-blue);
-            border-bottom: 1px solid #dee2e6;
+            border-bottom: 2px solid #dee2e6;
+            flex-shrink: 0;
         }
         .card-body {
             flex: 1;
-            padding: 10px;
+            padding: 0;
             display: flex;
             flex-direction: column;
-            justify-content: space-around;
+            /* ✅ 关键修改：确保候选人区域均分高度 */
         }
         .candidate-row {
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px dashed #eee;
+            justify-content: center;
+            /* ✅ 关键修改：每个候选人占据 1/3 高度 */
+            flex: 1;
+            padding: 10px 5px;
+            border-bottom: 1px dashed #dee2e6;
+            transition: background-color 0.2s;
         }
-        .candidate-row:last-child { border-bottom: none; }
-        .cand-name { font-size: 15px; margin-bottom: 4px; color: #333; }
+        .candidate-row:last-child { 
+            border-bottom: none; 
+        }
+        .candidate-row:hover {
+            background-color: #f8f9fa;
+        }
+        .cand-name { 
+            font-size: 15px; 
+            margin-bottom: 6px; 
+            color: #333;
+            font-weight: 500;
+            text-align: center;
+        }
         .cand-stats {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 13px; color: #666;
+            display: flex; 
+            align-items: center; 
+            gap: 10px;
+            font-size: 14px; 
+            color: #666;
         }
-        .vote-count { font-weight: bold; }
+        .vote-count { 
+            font-weight: bold;
+            font-size: 15px;
+        }
         .percentage-tag {
-            padding: 2px 6px; border-radius: 4px; color: white;
-            font-size: 12px; font-weight: bold; min-width: 40px; text-align: center;
+            padding: 3px 8px; 
+            border-radius: 4px; 
+            color: white;
+            font-size: 13px; 
+            font-weight: bold; 
+            min-width: 45px; 
+            text-align: center;
         }
         .tag-green { background-color: var(--green-tag); }
         .tag-red { background-color: var(--red-tag); }
@@ -178,7 +206,6 @@
 <div class="status-msg" id="statusMsg"></div>
 
 <script>
-    // 🔐 Supabase 配置
     const SUPABASE_URL = 'https://bhilewmilbhxowxwwyfq.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
 
@@ -214,7 +241,6 @@
             setTimeout(() => statusMsgEl.classList.remove('show'), 2000);
         }
 
-        // ✅ 核心修复：使用 user_code 统计实际投票人数
         function calculateActualVoters(votes) {
             if (!votes || votes.length === 0) return 0;
             
@@ -252,10 +278,7 @@
                 connectionStatusEl.textContent = '🟢 已连接';
                 showStatus('✅ 数据库连接成功');
                 
-                // ✅ 设置实时监听（监听投票和候选人变动）
                 setupRealtime();
-                
-                // 首次加载数据
                 await fetchAndRender();
                 
             } catch (err) {
@@ -266,9 +289,7 @@
             }
         }
 
-        // ✅ 增强版：同时监听 votes 和 candidates 表的变化
         function setupRealtime() {
-            // 1. 监听投票 (INSERT)
             const votesChannel = supabaseClient
                 .channel('votes_channel')
                 .on('postgres_changes', { 
@@ -280,37 +301,32 @@
                     fetchAndRender();
                 });
 
-            // 2. 监听候选人表变动 (INSERT, UPDATE, DELETE)
             const candidatesChannel = supabaseClient
                 .channel('candidates_channel')
                 .on('postgres_changes', { 
-                    event: '*', // 监听所有变动
+                    event: '*',
                     schema: 'public', 
                     table: 'candidates' 
                 }, (payload) => {
-                    console.log(' 候选人数据发生变动:', payload);
+                    console.log('候选人数据发生变动:', payload);
                     showStatus('👥 岗位/候选人信息已更新');
-                    // 当候选人表变动时，重新拉取最新数据
                     fetchAndRender();
                 });
 
-            // 订阅两个通道
             votesChannel.subscribe();
             candidatesChannel.subscribe();
         }
 
         async function fetchAndRender() {
             try {
-                // 1. 获取最新候选人列表
                 const { data: candidates, error: candErr } = await supabaseClient
                     .from('candidates')
                     .select('*')
                     .order('position', { ascending: true })
-                    .order('id', { ascending: true }); // 保持顺序稳定
+                    .order('id', { ascending: true });
                 
                 if (candErr) throw candErr;
 
-                // 2. 获取投票记录
                 const { data: votes, error: voteErr } = await supabaseClient
                     .from('votes')
                     .select('candidate_id, user_code, id');
@@ -322,27 +338,23 @@
                 } else {
                     const safeVotes = votes || [];
                     
-                    // 计算实际投票人数
                     state.actualVoters = calculateActualVoters(safeVotes);
                     
-                    // 更新 UI 提示
                     if (state.actualVotersIsEstimated) {
                         voterCountWarningEl.style.display = 'inline';
                         calcMethodDisplayEl.textContent = '📊 统计方式: 记录数(估算)';
                         calcMethodDisplayEl.style.color = 'var(--warn-orange)';
                     } else {
                         voterCountWarningEl.style.display = 'none';
-                        calcMethodDisplayEl.textContent = ' 统计方式: 去重统计';
+                        calcMethodDisplayEl.textContent = '📊 统计方式: 去重统计';
                         calcMethodDisplayEl.style.color = '#28a745';
                     }
 
-                    // 统计每位候选人票数
                     const voteCount = {};
                     safeVotes.forEach(v => {
                         voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1;
                     });
 
-                    // 3. 按岗位分组并构建数据结构
                     const positionsMap = new Map();
                     const candidatesList = [];
                     
@@ -370,7 +382,6 @@
                     state.candidatesList = candidatesList;
                 }
 
-                // 4. 渲染界面
                 renderGrid();
                 updateStats();
                 
@@ -384,7 +395,6 @@
             if (!gridEl) return;
             gridEl.innerHTML = '';
             
-            // 遍历按 position 分组的 Map
             for (const [position, candidates] of state.positionsMap) {
                 const card = document.createElement('div');
                 card.className = 'position-card';
@@ -410,7 +420,9 @@
 
                 card.innerHTML = `
                     <div class="card-header">${position}</div>
-                    <div class="card-body">${candidatesHtml}</div>
+                    <div class="card-body">
+                        ${candidatesHtml}
+                    </div>
                 `;
                 gridEl.appendChild(card);
             }
