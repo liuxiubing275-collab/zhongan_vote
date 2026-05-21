@@ -12,77 +12,126 @@
             --primary-blue: #2c5aa0;
             --bg-color: #f0f4f8;
             --card-bg: #ffffff;
-            --header-height: 80px;
+            --header-height: 90px;
             --green-tag: #28a745;
             --red-tag: #dc3545;
             --text-main: #333;
             --warn-orange: #fd7e14;
             --badge-bg: #6c757d;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
         body {
             font-family: 'Microsoft YaHei', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
+        
+        /* ✅ 修复：头部完整显示 */
         header {
             background-color: var(--primary-blue);
             color: white;
-            padding: 0 20px;
+            padding: 10px 20px;
             height: var(--header-height);
+            min-height: var(--header-height);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             z-index: 100;
+            flex-shrink: 0; /* 防止被压缩 */
         }
-        h1 { font-size: 24px; margin-bottom: 10px; letter-spacing: 2px; }
+        
+        h1 { 
+            font-size: 22px; 
+            margin-bottom: 8px; 
+            letter-spacing: 2px;
+            white-space: nowrap;
+        }
+        
         .controls {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
             background: rgba(255,255,255,0.1);
-            padding: 8px 15px;
+            padding: 6px 12px;
             border-radius: 8px;
             flex-wrap: wrap;
+            justify-content: center;
         }
-        .controls label { font-size: 14px; }
+        
+        .controls label { font-size: 13px; }
+        
         .controls input {
-            width: 60px; padding: 4px; border: none;
-            border-radius: 4px; text-align: center; font-size: 14px;
+            width: 55px; 
+            padding: 3px; 
+            border: none;
+            border-radius: 4px; 
+            text-align: center; 
+            font-size: 13px;
         }
+        
         .btn {
-            padding: 6px 12px; border: none; border-radius: 4px;
-            cursor: pointer; font-size: 13px; font-weight: bold;
+            padding: 5px 10px; 
+            border: none; 
+            border-radius: 4px;
+            cursor: pointer; 
+            font-size: 12px; 
+            font-weight: bold;
             transition: opacity 0.2s;
         }
+        
         .btn:hover { opacity: 0.8; }
         .btn-confirm { background-color: #28a745; color: white; }
         .btn-reset { background-color: #dc3545; color: white; }
         .btn-refresh { background-color: #17a2b8; color: white; }
         .btn-export { background-color: #ffc107; color: #333; }
+        
         .stats-bar {
-            display: flex; gap: 20px; font-size: 14px; margin-top: 5px;
+            display: flex; 
+            gap: 20px; 
+            font-size: 13px; 
+            margin-top: 4px;
             align-items: center;
         }
+        
         .stat-item span { font-weight: bold; color: #ffd700; }
+        
         .stat-warning {
             color: var(--warn-orange);
-            font-size: 12px;
+            font-size: 11px;
             margin-left: 5px;
         }
-        main { flex: 1; padding: 15px; overflow-y: auto; }
+        
+        /* ✅ 修复：主区域正确计算剩余高度 */
+        main { 
+            flex: 1; 
+            padding: 12px; 
+            overflow: hidden;
+            min-height: 0; /* 允许 flex 子项缩小 */
+        }
+        
         .grid-container {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 15px;
+            gap: 12px;
             height: 100%;
         }
+        
         .position-card {
             background: var(--card-bg);
             border-radius: 8px;
@@ -91,117 +140,153 @@
             flex-direction: column;
             overflow: hidden;
             animation: fadeIn 0.3s ease-in-out;
-            min-height: 200px;
         }
+        
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
         .card-header {
             background-color: #e9ecef;
-            padding: 12px;
+            padding: 10px 8px;
             text-align: center;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 15px;
             color: var(--primary-blue);
             border-bottom: 2px solid #dee2e6;
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
+            min-height: 44px;
         }
+        
         .max-select-badge {
             background-color: var(--badge-bg);
             color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-size: 11px;
             font-weight: normal;
+            white-space: nowrap;
         }
+        
+        /* ✅ 修复：候选人区域严格均分 */
         .card-body {
             flex: 1;
             padding: 0;
             display: flex;
             flex-direction: column;
-            /* ✅ 关键：确保内容不会撑破，高度固定 */
-            height: calc(100% - 50px); /* 减去 header 高度 */
-            overflow: hidden;
+            min-height: 0; /* 允许缩小 */
         }
-        /* ✅ 关键修复：每个候选人严格占据 1/3 高度 */
+        
         .candidate-row {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            /* ✅ 关键：严格均分 1/3 高度 */
             flex: 1;
-            padding: 8px 5px;
-            border-bottom: 1px dashed #dee2e6;
+            padding: 6px 4px;
+            border-bottom: 1px dashed #e0e0e0;
             transition: background-color 0.2s;
-            min-height: 0; /* 允许缩小 */
-            overflow: hidden; /* 防止内容溢出 */
+            min-height: 0; /* 允许缩小到内容以下 */
+            overflow: hidden;
         }
+        
         .candidate-row:last-child { 
             border-bottom: none; 
         }
+        
         .candidate-row:hover {
-            background-color: #f8f9fa;
+            background-color: #f5f7fa;
         }
-        /* ✅ 字体加大但控制行高 */
+        
+        /* ✅ 候选人姓名 */
         .cand-name { 
-            font-size: 17px; 
-            margin-bottom: 6px; 
+            font-size: 16px; 
+            margin-bottom: 4px; 
             color: #333;
             font-weight: 600;
             text-align: center;
             line-height: 1.2;
-            max-height: 2.4em; /* 最多两行 */
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             width: 100%;
+            max-width: 100%;
         }
-        /* ✅ 票数统计区域 */
+        
+        /* ✅ 票数统计 */
         .cand-stats {
             display: flex; 
             align-items: center; 
-            gap: 10px;
-            font-size: 15px; 
+            gap: 8px;
+            font-size: 14px; 
             color: #666;
-            white-space: nowrap; /* 防止换行 */
+            white-space: nowrap;
+            flex-shrink: 0;
         }
+        
         .vote-count { 
             font-weight: bold;
-            font-size: 16px;
+            font-size: 15px;
         }
+        
         .percentage-tag {
-            padding: 3px 8px; 
+            padding: 2px 7px; 
             border-radius: 4px; 
             color: white;
-            font-size: 13px; 
+            font-size: 12px; 
             font-weight: bold; 
-            min-width: 45px; 
+            min-width: 42px; 
             text-align: center;
-            flex-shrink: 0; /* 不缩小 */
+            flex-shrink: 0;
         }
+        
         .tag-green { background-color: var(--green-tag); }
         .tag-red { background-color: var(--red-tag); }
+        
         .status-msg {
-            position: fixed; bottom: 20px; right: 20px;
-            padding: 10px 20px; border-radius: 6px;
-            background: #333; color: white; font-size: 13px;
-            display: none; z-index: 999;
+            position: fixed; 
+            bottom: 20px; 
+            right: 20px;
+            padding: 10px 20px; 
+            border-radius: 6px;
+            background: #333; 
+            color: white; 
+            font-size: 13px;
+            display: none; 
+            z-index: 999;
         }
-        .status-msg.show { display: block; animation: fadeOut 2s forwards; }
+        
+        .status-msg.show { 
+            display: block; 
+            animation: fadeOut 2s forwards; 
+        }
+        
         .status-msg.error { background: #dc3545; }
         .status-msg.warn { background: var(--warn-orange); color: #333; }
+        
         @keyframes fadeOut {
             0% { opacity: 1; transform: translateY(0); }
             70% { opacity: 1; }
             100% { opacity: 0; transform: translateY(-10px); }
         }
-        @media (max-width: 1400px) { .grid-container { grid-template-columns: repeat(4, 1fr); } }
-        @media (max-width: 1000px) { .grid-container { grid-template-columns: repeat(3, 1fr); } }
+        
+        /* ✅ 响应式适配 */
+        @media (max-width: 1600px) { 
+            .grid-container { grid-template-columns: repeat(4, 1fr); } 
+        }
+        @media (max-width: 1200px) { 
+            .grid-container { grid-template-columns: repeat(3, 1fr); } 
+        }
+        @media (max-width: 900px) { 
+            .grid-container { grid-template-columns: repeat(2, 1fr); } 
+        }
     </style>
 </head>
 <body>
@@ -214,14 +299,14 @@
         <button class="btn btn-confirm" onclick="updateExpected()">确认</button>
         <span style="color: #ddd; margin: 0 5px;">|</span>
         <span>实际投票: <span id="actualVotesDisplay">0</span></span>
-        <span id="voterCountWarning" class="stat-warning" style="display:none">⚠️估算值</span>
+        <span id="voterCountWarning" class="stat-warning" style="display:none">⚠️估算</span>
         <span>参与率: <span id="participationRate">0%</span></span>
         <button class="btn btn-reset" onclick="resetVotes()">复位</button>
         <button class="btn btn-refresh" onclick="fetchAndRender()">刷新</button>
         <button class="btn btn-export" onclick="exportExcel()">导出 Excel</button>
     </div>
     <div class="stats-bar">
-        <div class="stat-item">实时状态: <span id="connectionStatus">🟡 连接中...</span></div>
+        <div class="stat-item">状态: <span id="connectionStatus">🟡 连接中...</span></div>
         <div class="stat-item" id="calcMethodDisplay"></div>
     </div>
 </header>
@@ -235,6 +320,7 @@
 <script>
     const SUPABASE_URL = 'https://bhilewmilbhxowxwwyfq.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
+    const MAX_CANDIDATES_PER_POSITION = 3; // ✅ 限制最多显示3个候选人
 
     if (typeof window.supabase === 'undefined') {
         console.error('Supabase 库未加载');
@@ -334,8 +420,7 @@
                     event: '*',
                     schema: 'public', 
                     table: 'candidates' 
-                }, (payload) => {
-                    console.log('候选人数据发生变动:', payload);
+                }, () => {
                     showStatus('👥 岗位/候选人信息已更新');
                     fetchAndRender();
                 });
@@ -369,7 +454,7 @@
                     
                     if (state.actualVotersIsEstimated) {
                         voterCountWarningEl.style.display = 'inline';
-                        calcMethodDisplayEl.textContent = ' 统计方式: 记录数(估算)';
+                        calcMethodDisplayEl.textContent = '📊 统计方式: 记录数(估算)';
                         calcMethodDisplayEl.style.color = 'var(--warn-orange)';
                     } else {
                         voterCountWarningEl.style.display = 'none';
@@ -428,8 +513,11 @@
                 
                 const maxSelect = candidates[0]?.max_select || 1;
                 
+                // ✅ 关键修复：只取前3个候选人
+                const displayCandidates = candidates.slice(0, MAX_CANDIDATES_PER_POSITION);
+                
                 let candidatesHtml = '';
-                candidates.forEach(cand => {
+                displayCandidates.forEach(cand => {
                     const rate = state.actualVoters > 0 
                         ? (cand.votes / state.actualVoters) * 100 
                         : 0;
@@ -438,7 +526,7 @@
 
                     candidatesHtml += `
                         <div class="candidate-row">
-                            <div class="cand-name">${cand.name}</div>
+                            <div class="cand-name" title="${cand.name}">${cand.name}</div>
                             <div class="cand-stats">
                                 <span class="vote-count">${cand.votes}票</span>
                                 <span class="percentage-tag ${tagClass}">${rateStr}</span>
