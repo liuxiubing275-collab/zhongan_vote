@@ -125,6 +125,8 @@
             display: none; z-index: 999;
         }
         .status-msg.show { display: block; animation: fadeOut 2s forwards; }
+        .status-msg.error { background: #dc3545; }
+        .status-msg.warn { background: #ffc107; color: #333; }
         @keyframes fadeOut {
             0% { opacity: 1; transform: translateY(0); }
             70% { opacity: 1; }
@@ -150,7 +152,7 @@
         <button class="btn btn-export" onclick="exportExcel()">导出 Excel</button>
     </div>
     <div class="stats-bar">
-        <div class="stat-item">实时在线: <span id="connectionStatus">🟡 连接中...</span></div>
+        <div class="stat-item">实时状态: <span id="connectionStatus">🟡 连接中...</span></div>
     </div>
 </header>
 
@@ -170,44 +172,60 @@
     let state = {
         expectedParticipants: 66,
         actualVoters: 0,
-        positionsMap: new Map(), // position -> { candidates: Map<name, votes> }
-        candidatesList: []       // 扁平列表用于导出
+        positionsMap: new Map(),
+        candidatesList: []
     };
 
+    // DOM 元素缓存
     const gridEl = document.getElementById('dashboardGrid');
     const statusMsgEl = document.getElementById('statusMsg');
     const connectionStatusEl = document.getElementById('connectionStatus');
+    const expectedInputEl = document.getElementById('expectedInput');
+    const actualVotesDisplayEl = document.getElementById('actualVotesDisplay');
+    const participationRateEl = document.getElementById('participationRate');
 
     // 显示状态消息
     function showStatus(msg, type = 'info') {
+        if (!statusMsgEl) return;
         statusMsgEl.textContent = msg;
-        statusMsgEl.className = `status-msg show ${type}`;
-        setTimeout(() => statusMsgEl.classList.remove('show'), 2000);
+        statusMsgEl.className = 'status-msg show';
+        if (type === 'error') statusMsgEl.classList.add('error');
+        if (type === 'warn') statusMsgEl.classList.add('warn');
+        
+        setTimeout(() => {
+            if (statusMsgEl) statusMsgEl.classList.remove('show');
+        }, 2000);
     }
 
     // 初始化
     async function init() {
-        // 检查连接
-        const { data, error } = await supabase.from('candidates').select('count').limit(1);
-        if (error) {
+        try {
+            // 测试 Supabase 连接
+            const { data, error } = await supabase
+                .from('candidates')
+                .select('id', { count: 'exact', head: true })
+                .limit(1);
+            
+            if (error) throw error;
+            
+            connectionStatusEl.textContent = '🟢 已连接';
+            showStatus('✅ 数据库连接成功');
+            
+            // 设置实时订阅
+            setupRealtime();
+            
+            // 首次加载数据
+            await fetchAndRender();
+            
+        } catch (err) {
+            console.error('Supabase 连接错误:', err);
             connectionStatusEl.textContent = '🔴 连接失败';
-            showStatus('⚠️ Supabase 连接异常，请检查网络或 RLS 策略', 'error');
-            console.error('Supabase 连接错误:', error);
-            // 降级：使用本地模拟数据
+            showStatus('⚠️ 使用本地模拟数据', 'warn');
             loadMockData();
-            return;
         }
-        connectionStatusEl.textContent = '🟢 已连接';
-        showStatus('✅ 数据库连接成功');
-        
-        // 设置实时订阅
-        setupRealtime();
-        
-        // 首次加载数据
-        await fetchAndRender();
     }
 
-    // 设置实时订阅（投票新增时自动刷新）
+    // 设置实时订阅
     function setupRealtime() {
         supabase
             .channel('votes_channel')
@@ -233,52 +251,56 @@
             
             if (candErr) throw candErr;
 
-            // 2. 获取所有投票并聚合
+            // 2. 获取所有投票记录
             const { data: votes, error: voteErr } = await supabase
                 .from('votes')
-                .select('candidate_id');
+                .select('candidate_id, code');
             
             if (voteErr) throw voteErr;
 
             // 3. 统计每位候选人的票数
             const voteCount = {};
-            votes?.forEach(v => {
+            votes.forEach(v => {
                 voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1;
             });
 
-            // 4. 按岗位分组
+            // 4. 计算实际投票人数（去重：统计不同的 code）
+            const uniqueCodes = new Set();
+            if (votes && votes.length > 0) {
+                votes.forEach(v => {
+                    if (v.code) uniqueCodes.add(v.code);
+                });
+            }
+            state.actualVoters = uniqueCodes.size;
+
+            // 5. 按岗位分组
             const positionsMap = new Map();
             const candidatesList = [];
             
-            candidates?.forEach(cand => {
-                if (!positionsMap.has(cand.position)) {
-                    positionsMap.set(cand.position, []);
-                }
-                const votes = voteCount[cand.id] || 0;
-                positionsMap.get(cand.position).push({
-                    id: cand.id,
-                    name: cand.name,
-                    votes: votes,
-                    max_select: cand.max_select
+            if (candidates) {
+                candidates.forEach(cand => {
+                    if (!positionsMap.has(cand.position)) {
+                        positionsMap.set(cand.position, []);
+                    }
+                    const votes = voteCount[cand.id] || 0;
+                    positionsMap.get(cand.position).push({
+                        id: cand.id,
+                        name: cand.name,
+                        votes: votes,
+                        max_select: cand.max_select
+                    });
+                    candidatesList.push({
+                        position: cand.position,
+                        name: cand.name,
+                        votes: votes
+                    });
                 });
-                candidatesList.push({
-                    position: cand.position,
-                    name: cand.name,
-                    votes: votes
-                });
-            });
+            }
 
-            // 5. 计算实际投票人数（去重：一个 code 只能投一次，这里简化为最大票数岗位的和）
-            // 更准确的做法：统计 votes 表中不同 code 的数量
-            const { count: voterCount } = await supabase
-                .from('votes')
-                .select('code', { count: 'exact', head: true });
-            
-            state.actualVoters = voterCount || 0;
             state.positionsMap = positionsMap;
             state.candidatesList = candidatesList;
 
-            // 6. 渲染
+            // 6. 渲染界面
             renderGrid();
             updateStats();
             
@@ -290,6 +312,7 @@
 
     // 渲染网格
     function renderGrid() {
+        if (!gridEl) return;
         gridEl.innerHTML = '';
         
         for (const [position, candidates] of state.positionsMap) {
@@ -325,18 +348,27 @@
 
     // 更新顶部统计
     function updateStats() {
-        document.getElementById('actualVotesDisplay').textContent = state.actualVoters;
-        document.getElementById('totalParticipantsDisplay')?.textContent = state.actualVoters;
+        if (actualVotesDisplayEl) {
+            actualVotesDisplayEl.textContent = state.actualVoters;
+        }
         
-        const rate = state.expectedParticipants > 0 
-            ? (state.actualVoters / state.expectedParticipants) * 100 
-            : 0;
-        document.getElementById('participationRate').textContent = rate.toFixed(1) + '%';
+        const totalEl = document.getElementById('totalParticipantsDisplay');
+        if (totalEl) {
+            totalEl.textContent = state.actualVoters;
+        }
+        
+        if (participationRateEl) {
+            const rate = state.expectedParticipants > 0 
+                ? (state.actualVoters / state.expectedParticipants) * 100 
+                : 0;
+            participationRateEl.textContent = rate.toFixed(1) + '%';
+        }
     }
 
     // 更新应到人数
     function updateExpected() {
-        const val = parseInt(document.getElementById('expectedInput').value);
+        if (!expectedInputEl) return;
+        const val = parseInt(expectedInputEl.value);
         if (!isNaN(val) && val > 0) {
             state.expectedParticipants = val;
             updateStats();
@@ -346,21 +378,33 @@
         }
     }
 
-    // 复位投票（清空 votes 表）
+    // 复位投票
     async function resetVotes() {
         if (!confirm('⚠️ 确定要清空所有投票记录吗？此操作不可恢复！')) return;
         
         try {
             showStatus('🔄 正在复位...');
-            const { error } = await supabase.from('votes').delete().neq('id', 0);
-            if (error) throw error;
             
-            // 同时重置 codes 表的 used 状态
-            await supabase.from('codes').update({ used: false, used_at: null }).eq('used', true);
+            // 删除所有投票记录
+            const { error: deleteError } = await supabase
+                .from('votes')
+                .delete()
+                .neq('id', 0);
+            
+            if (deleteError) throw deleteError;
+            
+            // 重置 codes 表的 used 状态
+            const { error: updateError } = await supabase
+                .from('codes')
+                .update({ used: false, used_at: null })
+                .eq('used', true);
+            
+            if (updateError) throw updateError;
             
             state.actualVoters = 0;
             await fetchAndRender();
             showStatus('✅ 系统已复位至初始状态');
+            
         } catch (err) {
             console.error('复位失败:', err);
             showStatus('❌ 复位失败: ' + err.message, 'error');
@@ -369,7 +413,7 @@
 
     // 导出 Excel
     function exportExcel() {
-        if (state.candidatesList.length === 0) {
+        if (!state.candidatesList || state.candidatesList.length === 0) {
             showStatus('⚠️ 暂无数据可导出', 'error');
             return;
         }
@@ -391,8 +435,10 @@
 
         // 添加汇总行
         data.push([]);
-        data.push(["汇总", "", state.actualVoters, 
-                  `参与率: ${(state.actualVoters/state.expectedParticipants*100).toFixed(1)}%`, ""]);
+        const participationRate = state.expectedParticipants > 0 
+            ? (state.actualVoters / state.expectedParticipants * 100).toFixed(1) 
+            : 0;
+        data.push(["汇总", "", state.actualVoters, `参与率: ${participationRate}%`, ""]);
 
         const ws = XLSX.utils.aoa_to_sheet(data);
         ws['!cols'] = [{wch:18}, {wch:15}, {wch:10}, {wch:12}, {wch:15}];
@@ -406,7 +452,7 @@
         showStatus('📥 导出成功');
     }
 
-    // 降级：本地模拟数据（当 Supabase 不可用时）
+    // 降级：本地模拟数据
     function loadMockData() {
         const mockPositions = [
             { position: "发射机房副主任", candidates: [
@@ -415,12 +461,50 @@
             { position: "中控机房主任", candidates: [
                 {name:"候选人C1", votes:6}, {name:"候选人C2", votes:2}
             ]},
-            // ... 可根据需要扩展
+            { position: "中控机房副主任", candidates: [
+                {name:"候选人D1", votes:5}, {name:"候选人D2", votes:5}, {name:"候选人D3", votes:6}
+            ]},
+            { position: "维修室主任", candidates: [
+                {name:"候选人E1", votes:0}, {name:"候选人E2", votes:8}
+            ]},
+            { position: "维修室副主任", candidates: [
+                {name:"候选人F1", votes:6}, {name:"候选人F2", votes:7}, {name:"候选人F3", votes:2}
+            ]},
+            { position: "技办主任", candidates: [
+                {name:"候选人G1", votes:2}, {name:"候选人G2", votes:5}
+            ]},
+            { position: "技办室副主任", candidates: [
+                {name:"候选人H1", votes:6}, {name:"候选人H2", votes:1}
+            ]},
+            { position: "台办主任", candidates: [
+                {name:"候选人I1", votes:5}, {name:"候选人I2", votes:2}
+            ]},
+            { position: "行政科长", candidates: [
+                {name:"候选人J1", votes:4}, {name:"候选人J2", votes:3}
+            ]},
+            { position: "财务科长", candidates: [
+                {name:"候选人K1", votes:6}, {name:"候选人K2", votes:2}
+            ]},
+            { position: "人事科长", candidates: [
+                {name:"候选人L1", votes:6}, {name:"候选人L2", votes:2}
+            ]},
+            { position: "保卫科长", candidates: [
+                {name:"候选人M1", votes:4}, {name:"候选人M2", votes:3}
+            ]},
+            { position: "党办主任", candidates: [
+                {name:"候选人N1", votes:0}, {name:"候选人N2", votes:8}
+            ]},
+            { position: "离退休科长", candidates: [
+                {name:"候选人O1", votes:0}, {name:"候选人O2", votes:8}
+            ]},
+            { position: "发射机房主任", candidates: [
+                {name:"张三", votes:1}, {name:"李四", votes:6}
+            ]}
         ];
         
         state.positionsMap = new Map();
         state.candidatesList = [];
-        state.actualVoters = 8; // 模拟值
+        state.actualVoters = 8;
         
         mockPositions.forEach(pos => {
             const list = [];
@@ -437,10 +521,9 @@
         
         renderGrid();
         updateStats();
-        showStatus('📦 使用本地模拟数据（数据库连接失败）', 'warn');
     }
 
-    // 启动
+    // 启动应用
     init();
 </script>
 </body>
