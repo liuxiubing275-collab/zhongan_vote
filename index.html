@@ -17,6 +17,7 @@
             --red-tag: #dc3545;
             --text-main: #333;
             --warn-orange: #fd7e14;
+            --badge-bg: #6c757d;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -105,22 +106,33 @@
             color: var(--primary-blue);
             border-bottom: 2px solid #dee2e6;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .max-select-badge {
+            background-color: var(--badge-bg);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: normal;
         }
         .card-body {
             flex: 1;
             padding: 0;
             display: flex;
             flex-direction: column;
-            /* ✅ 关键修改：确保候选人区域均分高度 */
         }
         .candidate-row {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            /* ✅ 关键修改：每个候选人占据 1/3 高度 */
             flex: 1;
-            padding: 10px 5px;
+            padding: 15px 5px;
             border-bottom: 1px dashed #dee2e6;
             transition: background-color 0.2s;
         }
@@ -130,31 +142,33 @@
         .candidate-row:hover {
             background-color: #f8f9fa;
         }
+        /* ✅ 加大候选人姓名字体 */
         .cand-name { 
-            font-size: 15px; 
-            margin-bottom: 6px; 
+            font-size: 18px; 
+            margin-bottom: 8px; 
             color: #333;
-            font-weight: 500;
+            font-weight: 600;
             text-align: center;
         }
+        /* ✅ 加大票数统计字体 */
         .cand-stats {
             display: flex; 
             align-items: center; 
-            gap: 10px;
-            font-size: 14px; 
+            gap: 12px;
+            font-size: 16px; 
             color: #666;
         }
         .vote-count { 
             font-weight: bold;
-            font-size: 15px;
+            font-size: 17px;
         }
         .percentage-tag {
-            padding: 3px 8px; 
+            padding: 4px 10px; 
             border-radius: 4px; 
             color: white;
-            font-size: 13px; 
+            font-size: 14px; 
             font-weight: bold; 
-            min-width: 45px; 
+            min-width: 50px; 
             text-align: center;
         }
         .tag-green { background-color: var(--green-tag); }
@@ -399,6 +413,9 @@
                 const card = document.createElement('div');
                 card.className = 'position-card';
                 
+                // 获取该岗位的 max_select（所有候选人的 max_select 应该相同）
+                const maxSelect = candidates[0]?.max_select || 1;
+                
                 let candidatesHtml = '';
                 candidates.forEach(cand => {
                     const rate = state.actualVoters > 0 
@@ -418,8 +435,12 @@
                     `;
                 });
 
+                // ✅ 在岗位名称后添加 max_select 显示
                 card.innerHTML = `
-                    <div class="card-header">${position}</div>
+                    <div class="card-header">
+                        <span>${position}</span>
+                        <span class="max-select-badge">应选${maxSelect}人</span>
+                    </div>
                     <div class="card-body">
                         ${candidatesHtml}
                     </div>
