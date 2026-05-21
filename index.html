@@ -16,6 +16,7 @@
             --green-tag: #28a745;
             --red-tag: #dc3545;
             --text-main: #333;
+            --warn-orange: #fd7e14;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -66,8 +67,14 @@
         .btn-export { background-color: #ffc107; color: #333; }
         .stats-bar {
             display: flex; gap: 20px; font-size: 14px; margin-top: 5px;
+            align-items: center;
         }
         .stat-item span { font-weight: bold; color: #ffd700; }
+        .stat-warning {
+            color: var(--warn-orange);
+            font-size: 12px;
+            margin-left: 5px;
+        }
         main { flex: 1; padding: 15px; overflow-y: auto; }
         .grid-container {
             display: grid;
@@ -127,7 +134,7 @@
         }
         .status-msg.show { display: block; animation: fadeOut 2s forwards; }
         .status-msg.error { background: #dc3545; }
-        .status-msg.warn { background: #ffc107; color: #333; }
+        .status-msg.warn { background: var(--warn-orange); color: #333; }
         @keyframes fadeOut {
             0% { opacity: 1; transform: translateY(0); }
             70% { opacity: 1; }
@@ -147,6 +154,7 @@
         <button class="btn btn-confirm" onclick="updateExpected()">确认</button>
         <span style="color: #ddd; margin: 0 5px;">|</span>
         <span>实际投票: <span id="actualVotesDisplay">0</span></span>
+        <span id="voterCountWarning" class="stat-warning" style="display:none">⚠️估算值</span>
         <span>参与率: <span id="participationRate">0%</span></span>
         <button class="btn btn-reset" onclick="resetVotes()">复位</button>
         <button class="btn btn-refresh" onclick="fetchAndRender()">刷新</button>
@@ -154,6 +162,7 @@
     </div>
     <div class="stats-bar">
         <div class="stat-item">实时状态: <span id="connectionStatus">🟡 连接中...</span></div>
+        <div class="stat-item" id="calcMethodDisplay"></div>
     </div>
 </header>
 
@@ -168,9 +177,8 @@
     const SUPABASE_URL = 'https://bhilewmilbhxowxwwyfq.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
 
-    // 检查 Supabase 库是否加载
     if (typeof window.supabase === 'undefined') {
-        console.error('Supabase 库未加载，请检查网络或 CDN 链接');
+        console.error('Supabase 库未加载');
         document.getElementById('connectionStatus').textContent = '🔴 库加载失败';
     } else {
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -179,37 +187,62 @@
         let state = {
             expectedParticipants: 66,
             actualVoters: 0,
+            actualVotersIsEstimated: false, // 标记是否为估算值
             positionsMap: new Map(),
-            candidatesList: [],
-            hasCodeColumn: true // 标记是否有 code 列
+            candidatesList: []
         };
 
-        // DOM 元素缓存
+        // DOM 缓存
         const gridEl = document.getElementById('dashboardGrid');
         const statusMsgEl = document.getElementById('statusMsg');
         const connectionStatusEl = document.getElementById('connectionStatus');
         const expectedInputEl = document.getElementById('expectedInput');
         const actualVotesDisplayEl = document.getElementById('actualVotesDisplay');
         const participationRateEl = document.getElementById('participationRate');
+        const voterCountWarningEl = document.getElementById('voterCountWarning');
+        const calcMethodDisplayEl = document.getElementById('calcMethodDisplay');
 
-        // 显示状态消息
         function showStatus(msg, type = 'info') {
             if (!statusMsgEl) return;
             statusMsgEl.textContent = msg;
             statusMsgEl.className = 'status-msg show';
             if (type === 'error') statusMsgEl.classList.add('error');
             if (type === 'warn') statusMsgEl.classList.add('warn');
-            
-            setTimeout(() => {
-                if (statusMsgEl) statusMsgEl.classList.remove('show');
-            }, 2000);
+            setTimeout(() => statusMsgEl.classList.remove('show'), 2000);
         }
 
-        // 初始化
+        // ✅ 修复：正确计算实际投票人数（去重）
+        function calculateActualVoters(votes, hasCodeColumn) {
+            if (!votes || votes.length === 0) return 0;
+            
+            if (hasCodeColumn) {
+                // 有 code 列：统计不同的 code 数量（一人一票）
+                const uniqueCodes = new Set();
+                votes.forEach(v => {
+                    if (v.code && v.code.trim() !== '') {
+                        uniqueCodes.add(v.code);
+                    }
+                });
+                // 如果所有 code 都为空，回退到记录数
+                return uniqueCodes.size > 0 ? uniqueCodes.size : votes.length;
+            } else {
+                // 无 code 列：无法去重，返回记录数并标记为估算
+                state.actualVotersIsEstimated = true;
+                return votes.length;
+            }
+        }
+
+        // ✅ 修复：安全计算参与率
+        function calculateParticipationRate(actual, expected) {
+            if (!expected || expected <= 0) return 0;
+            if (!actual || actual < 0) return 0;
+            // 限制最大值为 100%
+            return Math.min((actual / expected) * 100, 100);
+        }
+
         async function init() {
             try {
-                // 测试 Supabase 连接
-                const { data, error } = await supabaseClient
+                const { error } = await supabaseClient
                     .from('candidates')
                     .select('id', { count: 'exact', head: true })
                     .limit(1);
@@ -219,21 +252,17 @@
                 connectionStatusEl.textContent = '🟢 已连接';
                 showStatus('✅ 数据库连接成功');
                 
-                // 设置实时订阅
                 setupRealtime();
-                
-                // 首次加载数据
                 await fetchAndRender();
                 
             } catch (err) {
-                console.error('Supabase 连接错误:', err);
+                console.error('连接错误:', err);
                 connectionStatusEl.textContent = '🔴 连接失败';
                 showStatus('⚠️ 使用本地模拟数据', 'warn');
                 loadMockData();
             }
         }
 
-        // 设置实时订阅
         function setupRealtime() {
             supabaseClient
                 .channel('votes_channel')
@@ -248,10 +277,9 @@
                 .subscribe();
         }
 
-        // 从 Supabase 获取并渲染数据
         async function fetchAndRender() {
             try {
-                // 1. 获取所有候选人
+                // 1. 获取候选人
                 const { data: candidates, error: candErr } = await supabaseClient
                     .from('candidates')
                     .select('*')
@@ -259,39 +287,42 @@
                 
                 if (candErr) throw candErr;
 
-                // 2. ✅ 修复：只选择 candidate_id，避免 code 列不存在的问题
+                // 2. 获取投票记录（只查必要字段）
                 const { data: votes, error: voteErr } = await supabaseClient
                     .from('votes')
-                    .select('candidate_id, id'); // 选择 id 用于计数
+                    .select('candidate_id, code, id');
                 
                 if (voteErr) {
-                    console.warn('投票表查询警告:', voteErr);
-                    // 如果查询失败，使用空数组
+                    console.warn('投票查询警告:', voteErr);
                     state.actualVoters = 0;
+                    state.actualVotersIsEstimated = false;
                 } else {
-                    // 3. 统计每位候选人的票数
-                    const voteCount = {};
                     const safeVotes = votes || [];
                     
+                    // ✅ 检测是否有 code 列（通过第一条数据）
+                    const hasCodeColumn = safeVotes.length > 0 && 'code' in safeVotes[0];
+                    
+                    // ✅ 正确计算实际投票人数
+                    state.actualVoters = calculateActualVoters(safeVotes, hasCodeColumn);
+                    
+                    // ✅ 更新 UI 提示
+                    if (state.actualVotersIsEstimated) {
+                        voterCountWarningEl.style.display = 'inline';
+                        calcMethodDisplayEl.textContent = '📊 统计方式: 记录数(估算)';
+                        calcMethodDisplayEl.style.color = 'var(--warn-orange)';
+                    } else {
+                        voterCountWarningEl.style.display = 'none';
+                        calcMethodDisplayEl.textContent = hasCodeColumn ? '📊 统计方式: 去重统计' : '📊 统计方式: 记录数';
+                        calcMethodDisplayEl.style.color = '#28a745';
+                    }
+
+                    // 3. 统计每位候选人票数
+                    const voteCount = {};
                     safeVotes.forEach(v => {
                         voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1;
                     });
 
-                    // 4. ✅ 修复：计算实际投票人数
-                    // 如果有 code 列，去重统计；否则使用总投票记录数
-                    if (state.hasCodeColumn) {
-                        // 尝试从 votes 中提取 code（如果存在）
-                        const uniqueCodes = new Set();
-                        safeVotes.forEach(v => {
-                            if (v.code) uniqueCodes.add(v.code);
-                        });
-                        state.actualVoters = uniqueCodes.size > 0 ? uniqueCodes.size : safeVotes.length;
-                    } else {
-                        // 没有 code 列，使用投票记录总数作为实际投票人数
-                        state.actualVoters = safeVotes.length;
-                    }
-
-                    // 5. 按岗位分组
+                    // 4. 按岗位分组
                     const positionsMap = new Map();
                     const candidatesList = [];
                     
@@ -319,17 +350,15 @@
                     state.candidatesList = candidatesList;
                 }
 
-                // 6. 渲染界面
                 renderGrid();
                 updateStats();
                 
             } catch (err) {
                 console.error('数据加载失败:', err);
-                showStatus('❌ 数据加载失败: ' + err.message, 'error');
+                showStatus('❌ 数据加载失败', 'error');
             }
         }
 
-        // 渲染网格
         function renderGrid() {
             if (!gridEl) return;
             gridEl.innerHTML = '';
@@ -365,26 +394,25 @@
             }
         }
 
-        // 更新顶部统计
+        // ✅ 修复：参与率计算 + 边界保护
         function updateStats() {
             if (actualVotesDisplayEl) {
                 actualVotesDisplayEl.textContent = state.actualVoters;
             }
             
             const totalEl = document.getElementById('totalParticipantsDisplay');
-            if (totalEl) {
-                totalEl.textContent = state.actualVoters;
-            }
+            if (totalEl) totalEl.textContent = state.actualVoters;
             
             if (participationRateEl) {
-                const rate = state.expectedParticipants > 0 
-                    ? (state.actualVoters / state.expectedParticipants) * 100 
-                    : 0;
+                // ✅ 使用安全计算函数
+                const rate = calculateParticipationRate(
+                    state.actualVoters, 
+                    state.expectedParticipants
+                );
                 participationRateEl.textContent = rate.toFixed(1) + '%';
             }
         }
 
-        // 更新应到人数
         function updateExpected() {
             if (!expectedInputEl) return;
             const val = parseInt(expectedInputEl.value);
@@ -397,14 +425,12 @@
             }
         }
 
-        // 复位投票
         async function resetVotes() {
-            if (!confirm('⚠️ 确定要清空所有投票记录吗？此操作不可恢复！')) return;
+            if (!confirm('⚠️ 确定要清空所有投票记录吗？')) return;
             
             try {
                 showStatus('🔄 正在复位...');
                 
-                // 删除所有投票记录
                 const { error: deleteError } = await supabaseClient
                     .from('votes')
                     .delete()
@@ -412,19 +438,19 @@
                 
                 if (deleteError) throw deleteError;
                 
-                // 尝试重置 codes 表（如果存在）
                 try {
                     await supabaseClient
                         .from('codes')
                         .update({ used: false, used_at: null })
                         .eq('used', true);
-                } catch (codeErr) {
-                    console.warn('codes 表重置失败（可能不存在）:', codeErr);
+                } catch (e) {
+                    console.warn('codes 表重置跳过:', e);
                 }
                 
                 state.actualVoters = 0;
+                state.actualVotersIsEstimated = false;
                 await fetchAndRender();
-                showStatus('✅ 系统已复位至初始状态');
+                showStatus('✅ 系统已复位');
                 
             } catch (err) {
                 console.error('复位失败:', err);
@@ -432,34 +458,32 @@
             }
         }
 
-        // 导出 Excel
         function exportExcel() {
-            if (!state.candidatesList || state.candidatesList.length === 0) {
+            if (!state.candidatesList?.length) {
                 showStatus('⚠️ 暂无数据可导出', 'error');
                 return;
             }
 
-            const data = [["岗位", "候选人", "得票数", "得票率", "达标状态(≥50%)"]];
+            const data = [["岗位", "候选人", "得票数", "得票率", "达标(≥50%)"]];
             
             state.candidatesList.forEach(item => {
                 const rate = state.actualVoters > 0 
-                    ? (item.votes / state.actualVoters) * 100 
-                    : 0;
+                    ? (item.votes / state.actualVoters) * 100 : 0;
                 data.push([
-                    item.position,
-                    item.name,
-                    item.votes,
+                    item.position, item.name, item.votes,
                     (rate.toFixed(2) + '%'),
                     rate >= 50 ? '✅ 是' : '❌ 否'
                 ]);
             });
 
-            // 添加汇总行
             data.push([]);
-            const participationRate = state.expectedParticipants > 0 
-                ? (state.actualVoters / state.expectedParticipants * 100).toFixed(1) 
-                : 0;
-            data.push(["汇总", "", state.actualVoters, `参与率: ${participationRate}%`, ""]);
+            const participationRate = calculateParticipationRate(
+                state.actualVoters, 
+                state.expectedParticipants
+            );
+            data.push(["汇总", "", state.actualVoters, 
+                      `参与率: ${participationRate.toFixed(1)}%`, 
+                      state.actualVotersIsEstimated ? '⚠️估算' : '']);
 
             const ws = XLSX.utils.aoa_to_sheet(data);
             ws['!cols'] = [{wch:18}, {wch:15}, {wch:10}, {wch:12}, {wch:15}];
@@ -469,11 +493,9 @@
             
             const timestamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
             XLSX.writeFile(wb, `竞聘投票结果_${timestamp}.xlsx`);
-            
             showStatus('📥 导出成功');
         }
 
-        // 降级：本地模拟数据
         function loadMockData() {
             const mockPositions = [
                 { position: "发射机房副主任", candidates: [
@@ -526,15 +548,14 @@
             state.positionsMap = new Map();
             state.candidatesList = [];
             state.actualVoters = 8;
+            state.actualVotersIsEstimated = false;
             
             mockPositions.forEach(pos => {
                 const list = [];
                 pos.candidates.forEach(c => {
                     list.push({ name: c.name, votes: c.votes });
                     state.candidatesList.push({
-                        position: pos.position,
-                        name: c.name,
-                        votes: c.votes
+                        position: pos.position, name: c.name, votes: c.votes
                     });
                 });
                 state.positionsMap.set(pos.position, list);
@@ -542,9 +563,10 @@
             
             renderGrid();
             updateStats();
+            voterCountWarningEl.style.display = 'none';
+            calcMethodDisplayEl.textContent = '📊 统计方式: 本地模拟';
         }
 
-        // 启动应用
         init();
     }
 </script>
