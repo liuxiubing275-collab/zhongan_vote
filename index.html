@@ -21,430 +21,130 @@
             --login-bg: #1a365d;
         }
         
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0; 
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background-color: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; }
         
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-        
-        body {
-            font-family: 'Microsoft YaHei', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* ==================== 登录界面样式 ==================== */
+        /* 登录界面样式 */
         .login-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, var(--login-bg) 0%, #2d5a9e 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            transition: opacity 0.5s ease, visibility 0.5s ease;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 10000; transition: opacity 0.5s ease, visibility 0.5s ease;
         }
-        
-        .login-overlay.hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-        
+        .login-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
         .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            text-align: center;
-            min-width: 360px;
-            animation: slideIn 0.5s ease;
+            background: white; padding: 40px; border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center;
+            min-width: 360px; animation: slideIn 0.5s ease;
         }
-        
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .login-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-        
-        .login-title {
-            font-size: 24px;
-            color: var(--primary-blue);
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        
-        .login-subtitle {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 25px;
-        }
-        
-        .login-input-group {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        .login-icon { font-size: 48px; margin-bottom: 15px; }
+        .login-title { font-size: 24px; color: var(--primary-blue); margin-bottom: 8px; font-weight: bold; }
+        .login-subtitle { font-size: 14px; color: #666; margin-bottom: 25px; }
+        .login-input-group { position: relative; margin-bottom: 20px; }
         .login-input-group input {
-            width: 100%;
-            padding: 12px 45px 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-            outline: none;
+            width: 100%; padding: 12px 45px 12px 15px; border: 2px solid #e0e0e0;
+            border-radius: 8px; font-size: 16px; transition: border-color 0.3s; outline: none;
         }
-        
-        .login-input-group input:focus {
-            border-color: var(--primary-blue);
-        }
-        
-        .login-input-group input.error {
-            border-color: var(--red-tag);
-            animation: shake 0.5s;
-        }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-5px); }
-            40%, 80% { transform: translateX(5px); }
-        }
-        
+        .login-input-group input:focus { border-color: var(--primary-blue); }
+        .login-input-group input.error { border-color: var(--red-tag); animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
         .toggle-password {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            font-size: 18px;
-            color: #999;
-            user-select: none;
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            cursor: pointer; font-size: 18px; color: #999; user-select: none;
         }
-        
-        .toggle-password:hover {
-            color: var(--primary-blue);
-        }
-        
+        .toggle-password:hover { color: var(--primary-blue); }
         .login-btn {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--primary-blue);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.3s;
+            width: 100%; padding: 12px; background-color: var(--primary-blue); color: white;
+            border: none; border-radius: 8px; font-size: 16px; font-weight: bold;
+            cursor: pointer; transition: background-color 0.3s;
         }
-        
-        .login-btn:hover {
-            background-color: #1e4072;
-        }
-        
-        .login-error-msg {
-            color: var(--red-tag);
-            font-size: 13px;
-            margin-top: 10px;
-            min-height: 20px;
-        }
-        
-        .login-footer {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #999;
-        }
-        
-        /* ==================== 主界面样式 ==================== */
+        .login-btn:hover { background-color: #1e4072; }
+        .login-error-msg { color: var(--red-tag); font-size: 13px; margin-top: 10px; min-height: 20px; }
+        .login-footer { margin-top: 20px; font-size: 12px; color: #999; }
+
+        /* 主界面样式 */
         header {
-            background-color: var(--primary-blue);
-            color: white;
-            padding: 10px 20px;
-            height: var(--header-height);
-            min-height: var(--header-height);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            z-index: 100;
-            flex-shrink: 0;
+            background-color: var(--primary-blue); color: white; padding: 10px 20px;
+            height: var(--header-height); min-height: var(--header-height);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 100; flex-shrink: 0;
         }
-        
-        h1 { 
-            font-size: 22px; 
-            margin-bottom: 8px; 
-            letter-spacing: 2px;
-            white-space: nowrap;
-        }
-        
+        h1 { font-size: 22px; margin-bottom: 8px; letter-spacing: 2px; white-space: nowrap; }
         .controls {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(255,255,255,0.1);
-            padding: 6px 12px;
-            border-radius: 8px;
-            flex-wrap: wrap;
-            justify-content: center;
+            display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.1);
+            padding: 6px 12px; border-radius: 8px; flex-wrap: wrap; justify-content: center;
         }
-        
         .controls label { font-size: 13px; }
-        
-        .controls input {
-            width: 55px; 
-            padding: 3px; 
-            border: none;
-            border-radius: 4px; 
-            text-align: center; 
-            font-size: 13px;
-        }
-        
-        .btn {
-            padding: 5px 10px; 
-            border: none; 
-            border-radius: 4px;
-            cursor: pointer; 
-            font-size: 12px; 
-            font-weight: bold;
-            transition: opacity 0.2s;
-        }
-        
+        .controls input { width: 55px; padding: 3px; border: none; border-radius: 4px; text-align: center; font-size: 13px; }
+        .btn { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: opacity 0.2s; }
         .btn:hover { opacity: 0.8; }
         .btn-confirm { background-color: #28a745; color: white; }
         .btn-reset { background-color: #dc3545; color: white; }
         .btn-refresh { background-color: #17a2b8; color: white; }
         .btn-export { background-color: #ffc107; color: #333; }
         .btn-logout { background-color: #6c757d; color: white; }
-        
-        .stats-bar {
-            display: flex; 
-            gap: 20px; 
-            font-size: 13px; 
-            margin-top: 4px;
-            align-items: center;
-        }
-        
+        .stats-bar { display: flex; gap: 20px; font-size: 13px; margin-top: 4px; align-items: center; }
         .stat-item span { font-weight: bold; color: #ffd700; }
-        
-        .stat-warning {
-            color: var(--warn-orange);
-            font-size: 11px;
-            margin-left: 5px;
-        }
-        
-        main { 
-            flex: 1; 
-            padding: 12px; 
-            overflow: hidden;
-            min-height: 0;
-        }
-        
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 12px;
-            height: 100%;
-        }
-        
+        .stat-warning { color: var(--warn-orange); font-size: 11px; margin-left: 5px; }
+        main { flex: 1; padding: 12px; overflow: hidden; min-height: 0; }
+        .grid-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; height: 100%; }
         .position-card {
-            background: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            animation: fadeIn 0.3s ease-in-out;
+            background: var(--card-bg); border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column; overflow: hidden; animation: fadeIn 0.3s ease-in-out;
         }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .card-header {
-            background-color: #e9ecef;
-            padding: 10px 8px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 15px;
-            color: var(--primary-blue);
-            border-bottom: 2px solid #dee2e6;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            flex-wrap: wrap;
-            min-height: 44px;
+            background-color: #e9ecef; padding: 10px 8px; text-align: center; font-weight: bold;
+            font-size: 15px; color: var(--primary-blue); border-bottom: 2px solid #dee2e6;
+            flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            gap: 6px; flex-wrap: wrap; min-height: 44px;
         }
-        
-        .max-select-badge {
-            background-color: var(--badge-bg);
-            color: white;
-            padding: 2px 7px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: normal;
-            white-space: nowrap;
-        }
-        
-        .card-body {
-            flex: 1;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-        }
-        
+        .max-select-badge { background-color: var(--badge-bg); color: white; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: normal; white-space: nowrap; }
+        .card-body { flex: 1; padding: 0; display: flex; flex-direction: column; min-height: 0; }
         .candidate-row {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-            padding: 6px 4px;
-            border-bottom: 1px dashed #e0e0e0;
-            transition: background-color 0.2s;
-            min-height: 0;
-            overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            flex: 1; padding: 6px 4px; border-bottom: 1px dashed #e0e0e0; transition: background-color 0.2s;
+            min-height: 0; overflow: hidden;
         }
-        
-        .candidate-row:last-child { 
-            border-bottom: none; 
-        }
-        
-        .candidate-row:hover {
-            background-color: #f5f7fa;
-        }
-        
-        .cand-name { 
-            font-size: 16px; 
-            margin-bottom: 4px; 
-            color: #333;
-            font-weight: 600;
-            text-align: center;
-            line-height: 1.2;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
-            max-width: 100%;
-        }
-        
-        .cand-stats {
-            display: flex; 
-            align-items: center; 
-            gap: 8px;
-            font-size: 14px; 
-            color: #666;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-        
-        .vote-count { 
-            font-weight: bold;
-            font-size: 15px;
-        }
-        
-        .percentage-tag {
-            padding: 2px 7px; 
-            border-radius: 4px; 
-            color: white;
-            font-size: 12px; 
-            font-weight: bold; 
-            min-width: 42px; 
-            text-align: center;
-            flex-shrink: 0;
-        }
-        
+        .candidate-row:last-child { border-bottom: none; }
+        .candidate-row:hover { background-color: #f5f7fa; }
+        .cand-name { font-size: 16px; margin-bottom: 4px; color: #333; font-weight: 600; text-align: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+        .cand-stats { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #666; white-space: nowrap; flex-shrink: 0; }
+        .vote-count { font-weight: bold; font-size: 15px; }
+        .percentage-tag { padding: 2px 7px; border-radius: 4px; color: white; font-size: 12px; font-weight: bold; min-width: 42px; text-align: center; flex-shrink: 0; }
         .tag-green { background-color: var(--green-tag); }
         .tag-red { background-color: var(--red-tag); }
-        
-        .status-msg {
-            position: fixed; 
-            bottom: 20px; 
-            right: 20px;
-            padding: 10px 20px; 
-            border-radius: 6px;
-            background: #333; 
-            color: white; 
-            font-size: 13px;
-            display: none; 
-            z-index: 999;
-        }
-        
-        .status-msg.show { 
-            display: block; 
-            animation: fadeOut 2s forwards; 
-        }
-        
+        .status-msg { position: fixed; bottom: 20px; right: 20px; padding: 10px 20px; border-radius: 6px; background: #333; color: white; font-size: 13px; display: none; z-index: 999; }
+        .status-msg.show { display: block; animation: fadeOut 2s forwards; }
         .status-msg.error { background: #dc3545; }
         .status-msg.warn { background: var(--warn-orange); color: #333; }
-        
-        @keyframes fadeOut {
-            0% { opacity: 1; transform: translateY(0); }
-            70% { opacity: 1; }
-            100% { opacity: 0; transform: translateY(-10px); }
-        }
-        
-        @media (max-width: 1600px) { 
-            .grid-container { grid-template-columns: repeat(4, 1fr); } 
-        }
-        @media (max-width: 1200px) { 
-            .grid-container { grid-template-columns: repeat(3, 1fr); } 
-        }
-        @media (max-width: 900px) { 
-            .grid-container { grid-template-columns: repeat(2, 1fr); } 
-        }
+        @keyframes fadeOut { 0% { opacity: 1; transform: translateY(0); } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-10px); } }
+        @media (max-width: 1600px) { .grid-container { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 1200px) { .grid-container { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 900px) { .grid-container { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
 <body>
 
-<!-- ==================== 登录界面 ==================== -->
+<!-- 登录界面 -->
 <div class="login-overlay" id="loginOverlay">
     <div class="login-box">
         <div class="login-icon">🔐</div>
         <div class="login-title">中干竞聘投票后台</div>
         <div class="login-subtitle">请输入管理员密码以继续</div>
-        
         <div class="login-input-group">
-            <input 
-                type="password" 
-                id="passwordInput" 
-                placeholder="请输入密码" 
-                autocomplete="off"
-            >
+            <input type="password" id="passwordInput" placeholder="请输入密码" autocomplete="off">
             <span class="toggle-password" id="togglePassword" onclick="togglePasswordVisibility()">👁️</span>
         </div>
-        
         <button class="login-btn" id="loginBtn" onclick="handleLogin()">登 录</button>
-        
         <div class="login-error-msg" id="loginErrorMsg"></div>
-        
-        <div class="login-footer">
-            管理员专用 · 未经授权禁止访问
-        </div>
+        <div class="login-footer">管理员专用 · 未经授权禁止访问</div>
     </div>
 </div>
 
-<!-- ==================== 主界面 ==================== -->
+<!-- 主界面 -->
 <header>
     <h1>中干竞聘投票满屏后台</h1>
     <div class="controls">
@@ -473,22 +173,43 @@
 <div class="status-msg" id="statusMsg"></div>
 
 <script>
-    // ==================== 登录配置 ====================
-    const ADMIN_PASSWORD = 'admin123'; // 修改此处设置密码
+    // 全局配置
+    const ADMIN_PASSWORD = 'admin123'; 
     const MAX_CANDIDATES_PER_POSITION = 3;
+    const SUPABASE_URL = 'https://bhilewmilbhxowxwwyfq.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
 
-    // 检查是否已登录（使用 sessionStorage）
-    function checkLoginStatus() {
-        const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-        if (isLoggedIn === 'true') {
-            document.getElementById('loginOverlay').classList.add('hidden');
-            return true;
-        }
-        return false;
+    // 系统变量
+    let supabaseClient = null;
+    let state = {
+        expectedParticipants: 66,
+        actualVoters: 0,
+        actualVotersIsEstimated: false,
+        positionsMap: new Map(),
+        candidatesList: []
+    };
+
+    // DOM 元素引用
+    let gridEl, statusMsgEl, connectionStatusEl, expectedInputEl, actualVotesDisplayEl, participationRateEl, voterCountWarningEl, calcMethodDisplayEl;
+
+    // 初始化 DOM 引用
+    function initDOMRefs() {
+        gridEl = document.getElementById('dashboardGrid');
+        statusMsgEl = document.getElementById('statusMsg');
+        connectionStatusEl = document.getElementById('connectionStatus');
+        expectedInputEl = document.getElementById('expectedInput');
+        actualVotesDisplayEl = document.getElementById('actualVotesDisplay');
+        participationRateEl = document.getElementById('participationRate');
+        voterCountWarningEl = document.getElementById('voterCountWarning');
+        calcMethodDisplayEl = document.getElementById('calcMethodDisplay');
     }
 
-    // 显示/隐藏密码
-    function togglePasswordVisibility() {
+    // ==================== 登录功能 ====================
+    window.checkLoginStatus = function() {
+        return sessionStorage.getItem('isLoggedIn') === 'true';
+    };
+
+    window.togglePasswordVisibility = function() {
         const input = document.getElementById('passwordInput');
         const toggle = document.getElementById('togglePassword');
         if (input.type === 'password') {
@@ -498,10 +219,9 @@
             input.type = 'password';
             toggle.textContent = '👁️';
         }
-    }
+    };
 
-    // 处理登录
-    function handleLogin() {
+    window.handleLogin = function() {
         const input = document.getElementById('passwordInput');
         const errorMsg = document.getElementById('loginErrorMsg');
         const password = input.value;
@@ -514,404 +234,274 @@
         }
 
         if (password === ADMIN_PASSWORD) {
-            // 登录成功
             sessionStorage.setItem('isLoggedIn', 'true');
             document.getElementById('loginOverlay').classList.add('hidden');
             errorMsg.textContent = '';
             input.value = '';
-            
-            // 初始化系统
-            init();
+            // 登录成功后初始化系统
+            initSystem();
         } else {
-            // 登录失败
             input.classList.add('error');
             errorMsg.textContent = '密码错误，请重试';
             input.value = '';
             setTimeout(() => input.classList.remove('error'), 500);
             input.focus();
         }
-    }
+    };
 
-    // 退出登录
-    function handleLogout() {
+    window.handleLogout = function() {
         if (confirm('确定要退出登录吗？')) {
             sessionStorage.removeItem('isLoggedIn');
             document.getElementById('loginOverlay').classList.remove('hidden');
             document.getElementById('passwordInput').value = '';
             document.getElementById('loginErrorMsg').textContent = '';
-            
-            // 取消订阅
             if (window.votesChannel) window.votesChannel.unsubscribe();
             if (window.candidatesChannel) window.candidatesChannel.unsubscribe();
         }
-    }
+    };
 
-    // 回车键登录
     document.getElementById('passwordInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            handleLogin();
-        }
+        if (e.key === 'Enter') window.handleLogin();
     });
 
-    // ==================== 系统主逻辑 ====================
-    const SUPABASE_URL = 'https://bhilewmilbhxowxwwyfq.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_Qnzwloea8NOgqdtkhDVUEw_g_iIPMcD';
+    // ==================== 系统核心逻辑 ====================
+    function showStatus(msg, type = 'info') {
+        if (!statusMsgEl) return;
+        statusMsgEl.textContent = msg;
+        statusMsgEl.className = 'status-msg show';
+        if (type === 'error') statusMsgEl.classList.add('error');
+        if (type === 'warn') statusMsgEl.classList.add('warn');
+        setTimeout(() => statusMsgEl.classList.remove('show'), 2000);
+    }
 
-    if (typeof window.supabase === 'undefined') {
-        console.error('Supabase 库未加载');
-        document.getElementById('connectionStatus').textContent = '🔴 库加载失败';
-    } else {
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        let state = {
-            expectedParticipants: 66,
-            actualVoters: 0,
-            actualVotersIsEstimated: false,
-            positionsMap: new Map(),
-            candidatesList: []
-        };
-
-        const gridEl = document.getElementById('dashboardGrid');
-        const statusMsgEl = document.getElementById('statusMsg');
-        const connectionStatusEl = document.getElementById('connectionStatus');
-        const expectedInputEl = document.getElementById('expectedInput');
-        const actualVotesDisplayEl = document.getElementById('actualVotesDisplay');
-        const participationRateEl = document.getElementById('participationRate');
-        const voterCountWarningEl = document.getElementById('voterCountWarning');
-        const calcMethodDisplayEl = document.getElementById('calcMethodDisplay');
-
-        function showStatus(msg, type = 'info') {
-            if (!statusMsgEl) return;
-            statusMsgEl.textContent = msg;
-            statusMsgEl.className = 'status-msg show';
-            if (type === 'error') statusMsgEl.classList.add('error');
-            if (type === 'warn') statusMsgEl.classList.add('warn');
-            setTimeout(() => statusMsgEl.classList.remove('show'), 2000);
-        }
-
-        function calculateActualVoters(votes) {
-            if (!votes || votes.length === 0) return 0;
-            
-            const hasUserCode = 'user_code' in votes[0];
-            
-            if (hasUserCode) {
-                const uniqueCodes = new Set();
-                votes.forEach(v => {
-                    if (v.user_code && v.user_code.trim() !== '') {
-                        uniqueCodes.add(v.user_code.trim());
-                    }
-                });
-                return uniqueCodes.size;
-            } else {
-                state.actualVotersIsEstimated = true;
-                return votes.length;
-            }
-        }
-
-        function calculateParticipationRate(actual, expected) {
-            if (!expected || expected <= 0) return 0;
-            if (!actual || actual < 0) return 0;
-            return Math.min((actual / expected) * 100, 100);
-        }
-
-        async function init() {
-            try {
-                const { error } = await supabaseClient
-                    .from('candidates')
-                    .select('id', { count: 'exact', head: true })
-                    .limit(1);
-                
-                if (error) throw error;
-                
-                connectionStatusEl.textContent = '🟢 已连接';
-                showStatus('✅ 数据库连接成功');
-                
-                setupRealtime();
-                await fetchAndRender();
-                
-            } catch (err) {
-                console.error('连接错误:', err);
-                connectionStatusEl.textContent = '🔴 连接失败';
-                showStatus('⚠️ 使用本地模拟数据', 'warn');
-                loadMockData();
-            }
-        }
-
-        function setupRealtime() {
-            window.votesChannel = supabaseClient
-                .channel('votes_channel')
-                .on('postgres_changes', { 
-                    event: 'INSERT', 
-                    schema: 'public', 
-                    table: 'votes' 
-                }, () => {
-                    showStatus('🗳️ 收到新投票');
-                    fetchAndRender();
-                });
-
-            window.candidatesChannel = supabaseClient
-                .channel('candidates_channel')
-                .on('postgres_changes', { 
-                    event: '*',
-                    schema: 'public', 
-                    table: 'candidates' 
-                }, () => {
-                    showStatus(' 岗位/候选人信息已更新');
-                    fetchAndRender();
-                });
-
-            window.votesChannel.subscribe();
-            window.candidatesChannel.subscribe();
-        }
-
-        async function fetchAndRender() {
-            try {
-                const { data: candidates, error: candErr } = await supabaseClient
-                    .from('candidates')
-                    .select('*')
-                    .order('position', { ascending: true })
-                    .order('id', { ascending: true });
-                
-                if (candErr) throw candErr;
-
-                const { data: votes, error: voteErr } = await supabaseClient
-                    .from('votes')
-                    .select('candidate_id, user_code, id');
-                
-                if (voteErr) {
-                    console.warn('投票查询警告:', voteErr);
-                    state.actualVoters = 0;
-                    state.actualVotersIsEstimated = false;
-                } else {
-                    const safeVotes = votes || [];
-                    
-                    state.actualVoters = calculateActualVoters(safeVotes);
-                    
-                    if (state.actualVotersIsEstimated) {
-                        voterCountWarningEl.style.display = 'inline';
-                        calcMethodDisplayEl.textContent = '📊 统计方式: 记录数(估算)';
-                        calcMethodDisplayEl.style.color = 'var(--warn-orange)';
-                    } else {
-                        voterCountWarningEl.style.display = 'none';
-                        calcMethodDisplayEl.textContent = '📊 统计方式: 去重统计';
-                        calcMethodDisplayEl.style.color = '#28a745';
-                    }
-
-                    const voteCount = {};
-                    safeVotes.forEach(v => {
-                        voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1;
-                    });
-
-                    const positionsMap = new Map();
-                    const candidatesList = [];
-                    
-                    if (candidates) {
-                        candidates.forEach(cand => {
-                            if (!positionsMap.has(cand.position)) {
-                                positionsMap.set(cand.position, []);
-                            }
-                            const votes = voteCount[cand.id] || 0;
-                            positionsMap.get(cand.position).push({
-                                id: cand.id,
-                                name: cand.name,
-                                votes: votes,
-                                max_select: cand.max_select
-                            });
-                            candidatesList.push({
-                                position: cand.position,
-                                name: cand.name,
-                                votes: votes
-                            });
-                        });
-                    }
-
-                    state.positionsMap = positionsMap;
-                    state.candidatesList = candidatesList;
-                }
-
-                renderGrid();
-                updateStats();
-                
-            } catch (err) {
-                console.error('数据加载失败:', err);
-                showStatus('❌ 数据加载失败', 'error');
-            }
-        }
-
-        function renderGrid() {
-            if (!gridEl) return;
-            gridEl.innerHTML = '';
-            
-            for (const [position, candidates] of state.positionsMap) {
-                const card = document.createElement('div');
-                card.className = 'position-card';
-                
-                const maxSelect = candidates[0]?.max_select || 1;
-                
-                const displayCandidates = candidates.slice(0, MAX_CANDIDATES_PER_POSITION);
-                
-                let candidatesHtml = '';
-                displayCandidates.forEach(cand => {
-                    const rate = state.actualVoters > 0 
-                        ? (cand.votes / state.actualVoters) * 100 
-                        : 0;
-                    const rateStr = Math.round(rate) + '%';
-                    const tagClass = rate >= 50 ? 'tag-green' : 'tag-red';
-
-                    candidatesHtml += `
-                        <div class="candidate-row">
-                            <div class="cand-name" title="${cand.name}">${cand.name}</div>
-                            <div class="cand-stats">
-                                <span class="vote-count">${cand.votes}票</span>
-                                <span class="percentage-tag ${tagClass}">${rateStr}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                card.innerHTML = `
-                    <div class="card-header">
-                        <span>${position}</span>
-                        <span class="max-select-badge">应选${maxSelect}人</span>
-                    </div>
-                    <div class="card-body">
-                        ${candidatesHtml}
-                    </div>
-                `;
-                gridEl.appendChild(card);
-            }
-        }
-
-        function updateStats() {
-            if (actualVotesDisplayEl) {
-                actualVotesDisplayEl.textContent = state.actualVoters;
-            }
-            
-            const totalEl = document.getElementById('totalParticipantsDisplay');
-            if (totalEl) totalEl.textContent = state.actualVoters;
-            
-            if (participationRateEl) {
-                const rate = calculateParticipationRate(
-                    state.actualVoters, 
-                    state.expectedParticipants
-                );
-                participationRateEl.textContent = rate.toFixed(1) + '%';
-            }
-        }
-
-        function updateExpected() {
-            if (!expectedInputEl) return;
-            const val = parseInt(expectedInputEl.value);
-            if (!isNaN(val) && val > 0) {
-                state.expectedParticipants = val;
-                updateStats();
-                showStatus('✅ 参与基数已更新');
-            } else {
-                showStatus('️ 请输入有效数字', 'error');
-            }
-        }
-
-        async function resetVotes() {
-            if (!confirm('⚠️ 确定要清空所有投票记录吗？')) return;
-            
-            try {
-                showStatus('🔄 正在复位...');
-                
-                const { error: deleteError } = await supabaseClient
-                    .from('votes')
-                    .delete()
-                    .neq('id', 0);
-                
-                if (deleteError) throw deleteError;
-                
-                state.actualVoters = 0;
-                state.actualVotersIsEstimated = false;
-                await fetchAndRender();
-                showStatus('✅ 系统已复位');
-                
-            } catch (err) {
-                console.error('复位失败:', err);
-                showStatus('❌ 复位失败: ' + err.message, 'error');
-            }
-        }
-
-        function exportExcel() {
-            if (!state.candidatesList?.length) {
-                showStatus('⚠️ 暂无数据可导出', 'error');
-                return;
-            }
-
-            const data = [["岗位", "候选人", "得票数", "得票率", "达标(≥50%)"]];
-            
-            state.candidatesList.forEach(item => {
-                const rate = state.actualVoters > 0 
-                    ? (item.votes / state.actualVoters) * 100 : 0;
-                data.push([
-                    item.position, item.name, item.votes,
-                    (rate.toFixed(2) + '%'),
-                    rate >= 50 ? '✅ 是' : ' 否'
-                ]);
+    function calculateActualVoters(votes) {
+        if (!votes || votes.length === 0) return 0;
+        const hasUserCode = 'user_code' in votes[0];
+        if (hasUserCode) {
+            const uniqueCodes = new Set();
+            votes.forEach(v => {
+                if (v.user_code && v.user_code.trim() !== '') uniqueCodes.add(v.user_code.trim());
             });
-
-            data.push([]);
-            const participationRate = calculateParticipationRate(
-                state.actualVoters, 
-                state.expectedParticipants
-            );
-            data.push(["汇总", "", state.actualVoters, 
-                      `参与率: ${participationRate.toFixed(1)}%`, 
-                      state.actualVotersIsEstimated ? '⚠️估算' : '']);
-
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            ws['!cols'] = [{wch:18}, {wch:15}, {wch:10}, {wch:12}, {wch:15}];
-            
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "竞聘投票结果");
-            
-            const timestamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
-            XLSX.writeFile(wb, `竞聘投票结果_${timestamp}.xlsx`);
-            showStatus('📥 导出成功');
-        }
-
-        function loadMockData() {
-            const mockPositions = [
-                { position: "发射机房副主任", candidates: [
-                    {name:"候选人B1", votes:8}, {name:"候选人B2", votes:3}, {name:"候选人B3", votes:5}
-                ]},
-                { position: "中控机房主任", candidates: [
-                    {name:"候选人C1", votes:6}, {name:"候选人C2", votes:2}
-                ]}
-            ];
-            
-            state.positionsMap = new Map();
-            state.candidatesList = [];
-            state.actualVoters = 8;
-            state.actualVotersIsEstimated = false;
-            
-            mockPositions.forEach(pos => {
-                const list = [];
-                pos.candidates.forEach(c => {
-                    list.push({ name: c.name, votes: c.votes });
-                    state.candidatesList.push({ position: pos.position, name: c.name, votes: c.votes });
-                });
-                state.positionsMap.set(pos.position, list);
-            });
-            
-            renderGrid();
-            updateStats();
-        }
-
-        // 页面加载时检查登录状态
-        if (!checkLoginStatus()) {
-            // 未登录，聚焦密码输入框
-            setTimeout(() => {
-                document.getElementById('passwordInput').focus();
-            }, 300);
+            return uniqueCodes.size;
         } else {
-            // 已登录，初始化系统
-            init();
+            state.actualVotersIsEstimated = true;
+            return votes.length;
         }
     }
+
+    function calculateParticipationRate(actual, expected) {
+        if (!expected || expected <= 0) return 0;
+        if (!actual || actual < 0) return 0;
+        return Math.min((actual / expected) * 100, 100);
+    }
+
+    async function initSystem() {
+        if (!supabaseClient) {
+            if (typeof window.supabase !== 'undefined') {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            } else {
+                connectionStatusEl.textContent = '🔴 库加载失败';
+                return;
+            }
+        }
+
+        try {
+            const { error } = await supabaseClient.from('candidates').select('id', { count: 'exact', head: true }).limit(1);
+            if (error) throw error;
+            
+            connectionStatusEl.textContent = '🟢 已连接';
+            showStatus('✅ 数据库连接成功');
+            
+            setupRealtime();
+            await fetchAndRender();
+        } catch (err) {
+            console.error('连接错误:', err);
+            connectionStatusEl.textContent = '🔴 连接失败';
+            showStatus('⚠️ 使用本地模拟数据', 'warn');
+            loadMockData();
+        }
+    }
+
+    function setupRealtime() {
+        window.votesChannel = supabaseClient.channel('votes_channel')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'votes' }, () => {
+                showStatus('🗳️ 收到新投票');
+                fetchAndRender();
+            });
+
+        window.candidatesChannel = supabaseClient.channel('candidates_channel')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'candidates' }, () => {
+                showStatus('👥 岗位/候选人信息已更新');
+                fetchAndRender();
+            });
+
+        window.votesChannel.subscribe();
+        window.candidatesChannel.subscribe();
+    }
+
+    async function fetchAndRender() {
+        try {
+            const { data: candidates, error: candErr } = await supabaseClient
+                .from('candidates').select('*').order('position', { ascending: true }).order('id', { ascending: true });
+            if (candErr) throw candErr;
+
+            const { data: votes, error: voteErr } = await supabaseClient
+                .from('votes').select('candidate_id, user_code, id');
+            
+            if (voteErr) {
+                state.actualVoters = 0;
+                state.actualVotersIsEstimated = false;
+            } else {
+                const safeVotes = votes || [];
+                state.actualVoters = calculateActualVoters(safeVotes);
+                
+                if (state.actualVotersIsEstimated) {
+                    voterCountWarningEl.style.display = 'inline';
+                    calcMethodDisplayEl.textContent = '📊 统计方式: 记录数(估算)';
+                    calcMethodDisplayEl.style.color = 'var(--warn-orange)';
+                } else {
+                    voterCountWarningEl.style.display = 'none';
+                    calcMethodDisplayEl.textContent = ' 统计方式: 去重统计';
+                    calcMethodDisplayEl.style.color = '#28a745';
+                }
+
+                const voteCount = {};
+                safeVotes.forEach(v => { voteCount[v.candidate_id] = (voteCount[v.candidate_id] || 0) + 1; });
+
+                const positionsMap = new Map();
+                const candidatesList = [];
+                
+                if (candidates) {
+                    candidates.forEach(cand => {
+                        if (!positionsMap.has(cand.position)) positionsMap.set(cand.position, []);
+                        const v = voteCount[cand.id] || 0;
+                        positionsMap.get(cand.position).push({ id: cand.id, name: cand.name, votes: v, max_select: cand.max_select });
+                        candidatesList.push({ position: cand.position, name: cand.name, votes: v });
+                    });
+                }
+                state.positionsMap = positionsMap;
+                state.candidatesList = candidatesList;
+            }
+            renderGrid();
+            updateStats();
+        } catch (err) {
+            console.error('数据加载失败:', err);
+            showStatus('❌ 数据加载失败', 'error');
+        }
+    }
+
+    function renderGrid() {
+        if (!gridEl) return;
+        gridEl.innerHTML = '';
+        for (const [position, candidates] of state.positionsMap) {
+            const card = document.createElement('div');
+            card.className = 'position-card';
+            const maxSelect = candidates[0]?.max_select || 1;
+            const displayCandidates = candidates.slice(0, MAX_CANDIDATES_PER_POSITION);
+            
+            let html = '';
+            displayCandidates.forEach(cand => {
+                const rate = state.actualVoters > 0 ? (cand.votes / state.actualVoters) * 100 : 0;
+                const tagClass = rate >= 50 ? 'tag-green' : 'tag-red';
+                html += `<div class="candidate-row">
+                    <div class="cand-name" title="${cand.name}">${cand.name}</div>
+                    <div class="cand-stats">
+                        <span class="vote-count">${cand.votes}票</span>
+                        <span class="percentage-tag ${tagClass}">${Math.round(rate)}%</span>
+                    </div>
+                </div>`;
+            });
+            
+            card.innerHTML = `<div class="card-header"><span>${position}</span><span class="max-select-badge">应选${maxSelect}人</span></div><div class="card-body">${html}</div>`;
+            gridEl.appendChild(card);
+        }
+    }
+
+    function updateStats() {
+        if (actualVotesDisplayEl) actualVotesDisplayEl.textContent = state.actualVoters;
+        const totalEl = document.getElementById('totalParticipantsDisplay');
+        if (totalEl) totalEl.textContent = state.actualVoters;
+        if (participationRateEl) {
+            participationRateEl.textContent = calculateParticipationRate(state.actualVoters, state.expectedParticipants).toFixed(1) + '%';
+        }
+    }
+
+    window.updateExpected = function() {
+        if (!expectedInputEl) return;
+        const val = parseInt(expectedInputEl.value);
+        if (!isNaN(val) && val > 0) {
+            state.expectedParticipants = val;
+            updateStats();
+            showStatus('✅ 参与基数已更新');
+        } else {
+            showStatus('⚠️ 请输入有效数字', 'error');
+        }
+    };
+
+    window.resetVotes = async function() {
+        if (!confirm('⚠️ 确定要清空所有投票记录吗？')) return;
+        try {
+            showStatus('🔄 正在复位...');
+            const { error } = await supabaseClient.from('votes').delete().neq('id', 0);
+            if (error) throw error;
+            state.actualVoters = 0;
+            state.actualVotersIsEstimated = false;
+            await fetchAndRender();
+            showStatus('✅ 系统已复位');
+        } catch (err) {
+            showStatus('❌ 复位失败: ' + err.message, 'error');
+        }
+    };
+
+    window.fetchAndRender = fetchAndRender; // 暴露给全局 onclick
+    window.exportExcel = function() {
+        if (!state.candidatesList?.length) { showStatus('⚠️ 暂无数据可导出', 'error'); return; }
+        const data = [["岗位", "候选人", "得票数", "得票率", "达标(≥50%)"]];
+        state.candidatesList.forEach(item => {
+            const rate = state.actualVoters > 0 ? (item.votes / state.actualVoters) * 100 : 0;
+            data.push([item.position, item.name, item.votes, (rate.toFixed(2) + '%'), rate >= 50 ? '✅ 是' : '❌ 否']);
+        });
+        data.push([]);
+        const pRate = calculateParticipationRate(state.actualVoters, state.expectedParticipants);
+        data.push(["汇总", "", state.actualVoters, `参与率: ${pRate.toFixed(1)}%`, state.actualVotersIsEstimated ? '⚠️估算' : '']);
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        ws['!cols'] = [{wch:18}, {wch:15}, {wch:10}, {wch:12}, {wch:15}];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "竞聘投票结果");
+        XLSX.writeFile(wb, `竞聘投票结果_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);
+        showStatus('📥 导出成功');
+    };
+
+    function loadMockData() {
+        const mock = [
+            { position: "发射机房副主任", candidates: [{name:"候选人B1", votes:8}, {name:"候选人B2", votes:3}, {name:"候选人B3", votes:5}] },
+            { position: "中控机房主任", candidates: [{name:"候选人C1", votes:6}, {name:"候选人C2", votes:2}] }
+        ];
+        state.positionsMap = new Map();
+        state.candidatesList = [];
+        state.actualVoters = 8;
+        mock.forEach(pos => {
+            const list = [];
+            pos.candidates.forEach(c => {
+                list.push({ name: c.name, votes: c.votes });
+                state.candidatesList.push({ position: pos.position, name: c.name, votes: c.votes });
+            });
+            state.positionsMap.set(pos.position, list);
+        });
+        renderGrid();
+        updateStats();
+    }
+
+    // 页面加载入口
+    window.addEventListener('DOMContentLoaded', () => {
+        initDOMRefs();
+        if (!window.checkLoginStatus()) {
+            setTimeout(() => document.getElementById('passwordInput').focus(), 300);
+        } else {
+            document.getElementById('loginOverlay').classList.add('hidden');
+            initSystem();
+        }
+    });
 </script>
 </body>
 </html>
