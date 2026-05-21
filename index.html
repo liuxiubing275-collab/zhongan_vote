@@ -1,33 +1,39 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <link rel="icon" href="data:,">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>中干竞聘投票</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <!-- ✅ 必须引入 Supabase 客户端库 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-
 <body>
   <header>
     <h1>中干竞聘投票</h1>
   </header>
 
-<div id="successOverlay">
-  投票成功！<br>
-  <button onclick="closePage()">确定</button>
-</div>
-
   <div class="user-code">
-    <label>请输入序列码（5位字母数字）：</label>
-    <input type="text" id="userCode" maxlength="5" placeholder="ABCDE">
+    <label for="userCode">序列码：</label>
+    <input type="text" id="userCode" maxlength="5" placeholder="如：A1B2C" pattern="[A-Za-z0-9]{5}">
   </div>
 
-  <form id="voteForm"></form>
+  <form id="voteForm">
+    <!-- 候选人将由 JS 动态加载 -->
+  </form>
 
   <button id="submitBtn">提交投票</button>
+  <button id="resetVotesBtn" style="display:none;">复位全部投票</button>
 
-  <script src="script.js?v=20260513"></script>
+  <div id="successOverlay">
+    <div>
+      <h2>✅ 投票成功！</h2>
+      <p>感谢您的参与</p>
+      <button onclick="closePage()">关闭页面</button>
+    </div>
+  </div>
+
+  <!-- ✅ 最后加载您的脚本 -->
+  <script src="script.js?v=20260521"></script>
 </body>
 </html>
